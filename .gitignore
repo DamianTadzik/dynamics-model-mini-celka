@@ -1,9 +1,4 @@
-# Enviromental
-**/.venv/
-**/venv/
-**/cenv/
-
-# Matlab specific
+**/slprj/
 *.asv
-
+*.slxc
 
