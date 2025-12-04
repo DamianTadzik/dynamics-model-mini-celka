@@ -47,9 +47,9 @@ function params = boat_model_parameters_3dof()
 
     %% Lookup table data for CL(alpha) and CD(alpha)
     data = load("eppler874.mat");
-    params.LUT.alpha = data.LUT_alpha;
-    params.LUT.CL    = data.LUT_CL;
-    params.LUT.CD    = data.LUT_CD;
+    params.hydrofoils.LUT.alpha = data.LUT_alpha;
+    params.hydrofoils.LUT.CL    = data.LUT_CL;
+    params.hydrofoils.LUT.CD    = data.LUT_CD;
 
     %% Distance sensors placement in a B frame
     params.tof.pos_FL_B = [ +225; -182; -37 ] / 1000;  % [m]

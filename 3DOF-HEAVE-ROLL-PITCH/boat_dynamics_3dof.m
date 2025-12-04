@@ -56,13 +56,13 @@ function xdot = boat_dynamics_3dof(x, u, params)
     R_WB = R_BW.';
 
     %% Lift and drag coefficients (We account for the boat pitch in CD/CL calculation)
-    CL_FrontLeft  = interp1(params.LUT.alpha, params.LUT.CL, rad2deg(alpha_Left + theta), 'linear');
-    CL_FrontRight = interp1(params.LUT.alpha, params.LUT.CL, rad2deg(alpha_Right + theta), 'linear');
-    CL_Rear       = interp1(params.LUT.alpha, params.LUT.CL, rad2deg(alpha_Rear + theta), 'linear');
+    CL_FrontLeft  = interp1(params.hydrofoils.LUT.alpha, params.hydrofoils.LUT.CL, rad2deg(alpha_Left + theta), 'linear');
+    CL_FrontRight = interp1(params.hydrofoils.LUT.alpha, params.hydrofoils.LUT.CL, rad2deg(alpha_Right + theta), 'linear');
+    CL_Rear       = interp1(params.hydrofoils.LUT.alpha, params.hydrofoils.LUT.CL, rad2deg(alpha_Rear + theta), 'linear');
    
-    CD_FrontLeft  = interp1(params.LUT.alpha, params.LUT.CD, rad2deg(alpha_Left + theta), 'linear');
-    CD_FrontRight = interp1(params.LUT.alpha, params.LUT.CD, rad2deg(alpha_Right + theta), 'linear');
-    CD_Rear       = interp1(params.LUT.alpha, params.LUT.CD, rad2deg(alpha_Rear + theta), 'linear');
+    CD_FrontLeft  = interp1(params.hydrofoils.LUT.alpha, params.hydrofoils.LUT.CD, rad2deg(alpha_Left + theta), 'linear');
+    CD_FrontRight = interp1(params.hydrofoils.LUT.alpha, params.hydrofoils.LUT.CD, rad2deg(alpha_Right + theta), 'linear');
+    CD_Rear       = interp1(params.hydrofoils.LUT.alpha, params.hydrofoils.LUT.CD, rad2deg(alpha_Rear + theta), 'linear');
     
     %%  Lift / drag magnitudes 
     % Assumptions:
@@ -101,38 +101,31 @@ function xdot = boat_dynamics_3dof(x, u, params)
     % Propeller force (along +x_B)
     F_T_B  = [F_thrust; 0; 0];
 
-    %% Model the decrease in the lift as foils exit the water
-    smoothstep = @(t) max(0, min(1, t.^2 .* (3 - 2*t)));
+    %% Model the loss of the lift/drag as foils exit the water
 
     % World positions of foils / prop
     p_FL_W = [0;0;zW] + R_BW * r_FL_B;
     p_FR_W = [0;0;zW] + R_BW * r_FR_B;
     p_R_W  = [0;0;zW] + R_BW * r_R_B;
 
-    % Map from [z_air z_water] to [1 0]
-    sigma_FL = smoothstep(map(p_FL_W(3), -0.002, 0.008, 1, 0));
-    sigma_FR = smoothstep(map(p_FR_W(3), -0.002, 0.008, 1, 0));
-    sigma_R = smoothstep(map(p_R_W(3), -0.002, 0.008, 1, 0));
-
-    % Apply the loss in the drag and lift 
-    F_FL_B = F_FL_B .* sigma_FL;
-    F_FR_B = F_FR_B .* sigma_FR;
-    F_R_B = F_R_B .* sigma_R;
-    %%% THIS IS DEFINETLY NOT GOOD/CLEAN SOLUTION IMHO IT SHOULD be
-    %%% rethinked and redesigned also i could return the foil out of water
-    %%% signal as a debug output or something 
+    if p_FL_W(3) < 0
+        F_FL_B = [0; 0; 0];
+    end
+    if p_FR_W(3) < 0
+        F_FR_B = [0; 0; 0];
+    end
+    if p_R_W(3) < 0
+        F_R_B = [0; 0; 0];
+    end
 
     %% Model the buoyancy (simple for now)
     FB_up = buoyancy_force(zW, phi, theta, params);
     %%% THIS HAS TO BE IMPLEMENTED YET AS 3D LUT
+    
+    %%% maybe the added momentum from COB placement, that should handle that but...
+    %%% wow i do not think i will ever do this
 
-    %%% MODEL THE DISSIPATION FORCE!!!! bruh that's hard actually 
-
-    %%% maybe stop simulation if boat tips over idk 30 degrees? i mean it
-    %%% never tips that much right? or maybe the added momentum from COB
-    %%% placement will handle that but wow i do not think i will ever do
-    %%% this
-
+    
     %%  Torques via cross products in body frame
     tau_FL_B = cross(r_FL_B, F_FL_B);
     tau_FR_B = cross(r_FR_B, F_FR_B);
@@ -153,6 +146,10 @@ function xdot = boat_dynamics_3dof(x, u, params)
 
     % In NED: +z down, so upward support is minus the z-component
     Fz_up = -F_foils_W(3);   % >0 means net upward force from foils
+
+    %% TODO
+    %%% MODEL THE DISSIPATION FORCE!!!! that's hard actually 
+
 
     %% Final ODE system
     xdot = zeros(6,1);
@@ -176,8 +173,6 @@ end
 
 
 function F_buoy_up = buoyancy_force(zW, phi, theta, params)
-    % For now: ignore phi, theta → just use exponential in z
-
     m = params.m;
     g = params.g;
 

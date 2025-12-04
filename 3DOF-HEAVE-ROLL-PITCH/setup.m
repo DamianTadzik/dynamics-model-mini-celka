@@ -10,9 +10,8 @@ params = boat_model_parameters_3dof();   % Returns parameters structure
 
 % Create the bus object named boat_model_parameters
 busInfo = Simulink.Bus.createObject(params);  
+% FIXME why does this command creates a lot of Simulink.bus objects?
 boat_model_parameters = eval(busInfo.busName);   % busName is auto-generated
-assignin("base","boat_model_parameters", boat_model_parameters);
-assignin("base","params", params);              % also export params itself
 
 % TODO: Create parameter set like sampling time etc... solver... tsim
 
@@ -20,5 +19,5 @@ assignin("base","params", params);              % also export params itself
 load_system(model_name);
 open_system(model_name);
 
-% See if the model builds
+%% See if the model builds
 set_param(model_name, "SimulationCommand", "update");
