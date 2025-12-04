@@ -12,3 +12,8 @@ conda activate ./cenv
 
 conda deactivate 
 
+# TODO 
+- proper readme
+- add all files to git
+- conda requirements.txt or more detailed insturciotn
+
