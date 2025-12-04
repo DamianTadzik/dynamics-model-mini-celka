@@ -1,21 +1,24 @@
-function y = measurement_model(z, zdot, phi, phidot, theta, thetadot)
-% measurement_model  4 distance sensors + simple IMU
+function y = measurement_model(x, params)
+% 4 distance sensors + simple IMU derived from model state
 %
 % Inputs:
-%   z, zdot          heave [m], heave rate [m/s] (down-positive)
-%   phi, phidot      roll [rad],   roll rate [rad/s]
-%   theta, thetadot  pitch [rad],  pitch rate [rad/s]
+%   x: state vector
+%   [ z zdot phi phidot theta thetadot ]
+%   params: boat params struct
 %
-% Output y (10x1):
+% Output: 
+%   y: measurement vector
 %   [ d_FL; d_FR; d_AL; d_AR; ax; ay; az; gx; gy; gz ]
+%
+    %% Unpack input
+    z       = x(1);
+    zdot    = x(2);
+    phi     = x(3);
+    phidot  = x(4);
+    theta   = x(5);
+    thetadot = x(6);
 
-    % Sensors positions in the boat's body frame (COM relative)
-    s_FL = [225, -182, -37]' / 1000; % m
-    s_FR = [225, +182, -37]' / 1000; % m
-    s_AL = [-616, -182, -37]' / 1000; % m
-    s_AR = [-616, +182, -37]' / 1000; % m
-    
-    % Rotation body world (roll then pitch)
+    %% Rotation matrix, body -> world
     R_roll = [ 1        0           0;
                0   cos(phi)  -sin(phi);
                0   sin(phi)   cos(phi)];
@@ -23,6 +26,13 @@ function y = measurement_model(z, zdot, phi, phidot, theta, thetadot)
                 0           1  0;
                -sin(theta)  0  cos(theta)];
     R = R_pitch * R_roll;
+
+    % Sensors positions in the boat's body frame (COM relative)
+    s_FL = [225, -182, -37]' / 1000; % m
+    s_FR = [225, +182, -37]' / 1000; % m
+    s_AL = [-616, -182, -37]' / 1000; % m
+    s_AR = [-616, +182, -37]' / 1000; % m
+    
 
     % COM position in world frame
     pCOM = [0; 0; z];

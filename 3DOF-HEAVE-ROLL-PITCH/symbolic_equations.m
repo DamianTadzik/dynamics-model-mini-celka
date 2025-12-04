@@ -126,10 +126,10 @@ eqns = [
 % sensors positions in a B frame
 % F - fore      L - left
 % A - achter    R - right
-syms R_FL_B [3 1] real % [+225; -182; -37]/1000 m
-syms R_FR_B [3 1] real % [+225; +182; -37]/1000 m
-syms R_AL_B [3 1] real % [-616; -182; -37]/1000 m
-syms R_AR_B [3 1] real % [-616; +182; -37]/1000 m
+syms tof_FL_B [3 1] real % [+225; -182; -37]/1000 m
+syms tof_FR_B [3 1] real % [+225; +182; -37]/1000 m
+syms tof_AL_B [3 1] real % [-616; -182; -37]/1000 m
+syms tof_AR_B [3 1] real % [-616; +182; -37]/1000 m
 
 % Accelerometer and gyroscope placed nearly perfectly at the COM
 % Gyro and accel placement -> (0; 0; 0)_B 
