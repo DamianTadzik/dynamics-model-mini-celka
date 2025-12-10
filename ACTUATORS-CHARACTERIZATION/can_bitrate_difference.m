@@ -1,0 +1,34 @@
+clc; clear; close all;
+%% Load file
+parquet_file_125 = 'data/LOG000.PARQUET';
+info = parquetinfo(parquet_file_125);
+% Actually load file
+T125 = parquetread(parquet_file_125);
+for i = 1:length(T125.Properties.VariableDescriptions)
+    disp(T125.Properties.VariableDescriptions{i});
+end
+
+%% Plot the signals
+
+% T125.ACTUATOR_STEERING_FEEDBACK_CURRENT
+% T125.ACTUATOR_STEERING_FEEDBACK_VOLTAGE
+% T125.ACTUATOR_STEERING_FEEDBACK_SETPOINT_US
+% T125.ACTUATOR_LEFT_FOIL_FEEDBACK_POSITION_RAW
+
+[tRADIO_CONTROL_MODE_SWITCH, RADIO_CONTROL_MODE_SWITCH] = remove_nans(T125.seconds_since_start, T125.RADIO_CONTROL_MODE_SWITCH);
+
+[tACTUATOR_LEFT_FOIL_FEEDBACK_SETPOINT_US, ACTUATOR_LEFT_FOIL_FEEDBACK_SETPOINT_US] = remove_nans(T125.seconds_since_start, T125.ACTUATOR_LEFT_FOIL_FEEDBACK_SETPOINT_US);
+
+[tRADIO_CONTROL_FRONT_PITCH, RADIO_CONTROL_FRONT_PITCH] = remove_nans(T125.seconds_since_start, T125.RADIO_CONTROL_FRONT_PITCH);
+
+
+
+tiledlayout("vertical")
+nexttile
+plot(tRADIO_CONTROL_MODE_SWITCH, RADIO_CONTROL_MODE_SWITCH)
+
+nexttile
+yyaxis left
+plot(tRADIO_CONTROL_FRONT_PITCH, RADIO_CONTROL_FRONT_PITCH, '-o')
+yyaxis right
+plot(tACTUATOR_LEFT_FOIL_FEEDBACK_SETPOINT_US, ACTUATOR_LEFT_FOIL_FEEDBACK_SETPOINT_US, '-o')
