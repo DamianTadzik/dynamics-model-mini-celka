@@ -1,4 +1,4 @@
-function xdot = boat_dynamics_3dof(x, u, params)
+function [ xdot, info ] = boat_dynamics_3dof(x, u, params)
 %  Input
 %   x = [
 %       zW;              % 1 heave position (world frame, NED)
@@ -247,11 +247,13 @@ function xdot = boat_dynamics_3dof(x, u, params)
     xdot(6) = domega_B(1);
     xdot(7) = domega_B(2);
     xdot(8) = domega_B(3);
+
+    %% Update the info vector
+    % TBD some info regarding out of water for simulation stop or sth like
+    % that
+    info = [];
 end
 
-function mapped = map(x, in_min, in_max, out_min, out_max)
-    mapped = ((x - in_min) * (out_max - out_min)) / (in_max - in_min) + out_min;
-end
 
 
 function F_buoy_up = buoyancy_force(zW, phi, theta, params)

@@ -19,6 +19,7 @@ function params = boat_model_parameters_3dof()
 
     %% Buoyancy LUT
     % ToBeDone
+    % data = load("..\1DOF-HEAVE\")
 
     %% Hydrofoil placement
     params.hydrofoils.pos_front_left_B = [
@@ -51,7 +52,7 @@ function params = boat_model_parameters_3dof()
     ]; 
 
     %% Lookup table data for CL(alpha) and CD(alpha)
-    data = load("eppler874.mat");
+    data = load("../ACTUATORS-CHARACTERIZATION/eppler874.mat");
     params.hydrofoils.LUT.alpha = data.LUT_alpha;
     params.hydrofoils.LUT.CL    = data.LUT_CL;
     params.hydrofoils.LUT.CD    = data.LUT_CD;
