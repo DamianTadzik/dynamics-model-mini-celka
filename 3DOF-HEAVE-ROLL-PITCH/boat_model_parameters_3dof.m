@@ -19,7 +19,11 @@ function params = boat_model_parameters_3dof()
 
     %% Buoyancy LUT
     % ToBeDone
-    % data = load("..\1DOF-HEAVE\")
+    data = load("..\BUOYANCY-CHARACTERIZATION\simple_buoyancy_LUT.mat");
+
+    params.buoyancy.LUT.z = data.LUT_z;
+    params.buoyancy.LUT.Fb = data.LUT_Fb;
+    params.buoyancy.LUT.V = data.LUT_V;
 
     %% Hydrofoil placement
     params.hydrofoils.pos_front_left_B = [

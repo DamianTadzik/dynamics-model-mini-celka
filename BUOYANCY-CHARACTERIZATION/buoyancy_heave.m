@@ -19,7 +19,7 @@ ylabel('Buoyancy Force (N)');
 legend('Volume', 'Buoyancy Force');
 grid on;
 %% Preprocess
-z = data.z_mm / 1000;     % convert to meters
+z = (33 - data.z_mm) / 1000;     % convert to meters
 Fb = data.F_b_N;          % buoyant force
 V = data.volume_m3;
 
@@ -35,6 +35,11 @@ z = z(good_idx);
 Fb = Fb(good_idx);
 V = V(good_idx);
 
+%% Extend the z, V and Fb data
+z  = [ 1.0;  z(1)+0.005; z; z(end)-0.005;  -1.0 ];
+Fb = [ Fb(1); Fb(1); Fb; 0; 0 ];
+V  = [ V(1);  V(1); V; 0; 0 ];
+
 % visualize 
 figure; 
 xlabel('z [m]'); 
@@ -42,24 +47,30 @@ title('Cleaned buoyancy data');
 
 yyaxis left;
 plot(z, V, 'o-', ...
-    data.z_mm/1000, data.volume_m3, '*'); grid on;
+    (33-data.z_mm)/1000, data.volume_m3, '*'); grid on;
 ylabel('V [m^3]');
 
 yyaxis right;
 plot(z, Fb, 'o-', ...
-    data.z_mm/1000, data.F_b_N, '*'); grid on;
+    (33-data.z_mm)/1000, data.F_b_N, '*'); grid on;
 ylabel('F_b [N]');
 
+diff_z = diff(z);
+figure;
+plot(diff(z));
+assert(all(diff_z < 0))
 
 %% Fit function to data
-% Fit a smooth function 
-% Option 1: polynomial fit
-p = polyfit(z, Fb, 3);     % 3rd-order polynomial
-Fb_fit = polyval(p, z);
+% % Fit a smooth function 
+% % Option 1: polynomial fit
+% p = polyfit(z, Fb, 3);     % 3rd-order polynomial
+% Fb_fit = polyval(p, z);
 
 % Option 2 (better for nonlinearity): interpolation
-V_fun = @(zz) interp1(z, V, zz, 'pchip', 'extrap');
-Fb_fun = @(zz) interp1(z, Fb, zz, 'pchip', 'extrap');
+V_fun = @(zz) interp1(z, V, zz, 'pchip' );
+Fb_fun = @(zz) interp1(z, Fb, zz, 'pchip');
+
+zz = -1:0.001:1;
 
 % Plot 
 figure; 
@@ -70,19 +81,27 @@ legend;
 
 yyaxis right; 
 hold on;
-plot(z, V, 'o', 'DisplayName', 'data');
-plot(z, V_fun(z), '-', 'DisplayName', 'polyfit');
+% plot(z, V, 'o', 'DisplayName', 'data');
+plot(zz, V_fun(zz), '-', 'DisplayName', 'interp1');
 ylabel('Submerged volume [m^3]');
-hold off;
+hold off; legend;
 
 yyaxis left; 
 hold on;
-plot(z, Fb, 'o', 'DisplayName', 'data');
-plot(z, Fb_fun(z), '-', 'DisplayName', 'polyfit');
+% plot(z, Fb, 'o', 'DisplayName', 'data');
+plot(zz, Fb_fun(zz), '-', 'DisplayName', 'interp1');
 ylabel('Buoyancy force [N]');
-hold off;
+hold off; legend;
 
 
+%% Save the LUT data 
+
+LUT_z = zz;
+LUT_Fb =  Fb_fun(LUT_z);
+LUT_V =  V_fun(LUT_z);
+
+save simple_buoyancy_LUT.mat LUT_z LUT_Fb LUT_V
+return
 %% Interpolant creation
 % Create griddedInterpolant with input z and output Fb from the data
 V_interpolant = griddedInterpolant(z, V, 'pchip', 'nearest');

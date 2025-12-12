@@ -165,13 +165,16 @@ function [ xdot, info ] = boat_dynamics_3dof(x, u, params)
     end
 
     %% Model the buoyancy (simple for now)
-    FB_up = buoyancy_force(zW, phi_BW, theta_BW, params);
-    %%% THIS HAS TO BE IMPLEMENTED YET AS 3D LUT
-    
+    % FB_up = buoyancy_force(zW, phi_BW, theta_BW, params);
+    LUT_z = params.buoyancy.LUT.z;
+    LUT_Fb = params.buoyancy.LUT.Fb;
+    LUT_V = params.buoyancy.LUT.V;
+    FB_up = interp1(LUT_z, LUT_Fb, zW, "pchip");
+    V_submerged = interp1(LUT_z, LUT_V, zW, "pchip");
+
     %%% maybe the added momentum from COB placement, that should handle that but...
     %%% wow i do not think i will ever do this
         % TODO: replace with proper 3D LUT including roll/pitch dependence
-
 
     
     %%  Torques via cross products in body frame
@@ -197,9 +200,17 @@ function [ xdot, info ] = boat_dynamics_3dof(x, u, params)
     % In NED: +z down, so upward support is minus the z-component
     Fz_up = -F_total_W(3);   % >0 means net upward force from foils+thrust
 
-    %% TODO
-    %%% MODEL THE DISSIPATION FORCE!!!! that's hard actually 
+    %% MODEL THE DISSIPATION FORCE!!!! that's hard actually 
+    F_damp_z = 0;
+    % Damping b1 * zW_dot * V/V_ref
+    V_ref = 0.0171;
+    b1 = 128;
+    F_damp_z = F_damp_z - b1*zWdot*V_submerged/V_ref;
 
+    %% Added mass 
+    % Maybe to be done
+    ma = 0;
+    % ma = V(zW) * rho;
 
     %% Rotational dynamics: Newton–Euler in body frame
     %   I_B * domega_B + omega_B x (I_B * omega_B) = tau_B
@@ -229,7 +240,7 @@ function [ xdot, info ] = boat_dynamics_3dof(x, u, params)
                  + omega_psi_B   * cos(phi_BW) * sec_th;
 
     %% Heave dynamics in world frame (z_W is downwards)
-    zW_ddot = (m*g - Fz_up - FB_up) / m;   % gravity down (+), Fz_up up (-z)
+    zW_ddot = (m*g - Fz_up - FB_up + F_damp_z) / (m + ma);   % gravity down (+), Fz_up up (-z)
 
     %% Final ODE system (8 states)
     xdot = zeros(8,1);
@@ -252,18 +263,4 @@ function [ xdot, info ] = boat_dynamics_3dof(x, u, params)
     % TBD some info regarding out of water for simulation stop or sth like
     % that
     info = [];
-end
-
-
-
-function F_buoy_up = buoyancy_force(zW, phi, theta, params)
-    m = params.m;
-    g = params.g;
-
-    F_buoy_up = 0;
-
-    % If boat COM is below the level 0.02 m above the water
-    if zW > -0.02
-        F_buoy_up = m*g * (zW - (-0.02));
-    end
 end
