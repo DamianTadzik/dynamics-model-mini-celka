@@ -6,3 +6,5 @@ skokowe zmiany zadanego kąta aktuatorów za pomocą pilota, poprzez embed i pop
 # LOG002
 To samo co LOG000, ale na canie 500000 kbps
 
+# FAST LOG 
+log with increased sample rate for front foils
