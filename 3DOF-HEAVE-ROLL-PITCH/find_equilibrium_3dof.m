@@ -15,14 +15,14 @@ v0 = [
     deg2rad(6)  
 ];
 
-% Bounds for those (important)
+% Bounds for those actuators
 lb = [ -6; -6; -6 ];
 ub = [ 12; 12; 12 ];
 
 % Flight parameters
 zW0    = -0.1;         % [m]
-phi0   = deg2rad(0);    % roll
-theta0 = deg2rad(0);    % pitch
+phi0   = deg2rad(0);    % roll intended is LEVELED so =0
+theta0 = deg2rad(0);    % pitch intended is LEVELED so =0
 
 opts = optimoptions('lsqnonlin','Display','iter');
 
@@ -38,18 +38,18 @@ alpha_R  = v(3);
 
 % Build trimmed state
 x0 = zeros(8,1);
-x0(1) = zW0;
-x0(2) = 0;
-x0(3) = phi0;
-x0(4) = theta0;
-x0(5) = 0;
-x0(6:8) = 0;
+x0(1) = zW0; % heave
+x0(2) = 0;   % heave rate
+x0(3) = phi0; % roll
+x0(4) = theta0; % pitch
+x0(5) = 0; % yaw
+x0(6:8) = 0; % angular rates
 
 % Build trimmed input
 u0 = zeros(5,1);
 u0(1) = alpha_FL;
-u0(2) = alpha_R;
-u0(3) = alpha_FR;
+u0(2) = alpha_FR;
+u0(3) = alpha_R;
 u0(4) = Thrust0;
 u0(5) = Velcity0;
 
@@ -76,8 +76,8 @@ fprintf('theta   = %+6.3f deg\n', rad2deg(x0(4)));
 
 fprintf('\nActuators (trimmed):\n');
 fprintf('alpha_FL = %+6.3f deg\n', rad2deg(u0(1)));
-fprintf('alpha_FR = %+6.3f deg\n', rad2deg(u0(3)));
-fprintf('alpha_R  = %+6.3f deg\n', rad2deg(u0(2)));
+fprintf('alpha_FR = %+6.3f deg\n', rad2deg(u0(2)));
+fprintf('alpha_R  = %+6.3f deg\n', rad2deg(u0(3)));
 
 fprintf('\nSpeed:\n');
 fprintf('V = %.2f m/s\n', Velcity0);
@@ -116,8 +116,8 @@ function r = trim_residual_3dof(v, params, zW, phi, theta, V0, Thrust0)
     % --- Build input
     u = zeros(5,1);
     u(1) = alpha_FL;
-    u(2) = alpha_R;
-    u(3) = alpha_FR;
+    u(2) = alpha_FR;
+    u(3) = alpha_R;
     u(4) = Thrust0;
     u(5) = V0;
     

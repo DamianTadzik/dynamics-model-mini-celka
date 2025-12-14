@@ -18,7 +18,6 @@ function params = boat_model_parameters_3dof()
     params.Iz_B = 0.49160107008109;  % [kg m^2]  yaw inertia
 
     %% Buoyancy LUT
-    % ToBeDone
     data = load("..\BUOYANCY-CHARACTERIZATION\simple_buoyancy_LUT.mat");
 
     params.buoyancy.LUT.z = data.LUT_z;
@@ -47,6 +46,15 @@ function params = boat_model_parameters_3dof()
     % S_rear  = 8700 mm^2
     params.hydrofoils.S_front = 8080 / 1e6;    % [m^2]  single foil  area
     params.hydrofoils.S_rear  = 8700 / 1e6;    % [m^2]  single foil area
+
+    %% Hydrofoil actuators dynamics
+    data = load("..\ACTUATORS-CHARACTERIZATION\hydrofoil_actuator_dynamics.mat");
+
+    params.hydrofoils.dynamics.T = data.T_avg;
+    params.hydrofoils.dynamics.L = data.L_avg;
+    params.hydrofoils.dynamics.Ts_act = 0.01; % PWM update rate 100 Hz
+    params.hydrofoils.dynamics.alpha_max = 12;
+    params.hydrofoils.dynamics.alpha_min = -6; 
 
     %% Thrust placement
     params.thruster.pos_thruster_B = [

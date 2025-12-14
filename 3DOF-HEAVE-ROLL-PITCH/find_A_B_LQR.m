@@ -22,8 +22,8 @@ dx(8) = deg2rad(0.05); % r [rad/s]
 
 du = zeros(size(u0));
 du(1) = deg2rad(0.02); % alpha_FL
-du(2) = deg2rad(0.02); % alpha_R
-du(3) = deg2rad(0.02); % alpha_FR
+du(2) = deg2rad(0.02); % alpha_FR
+du(3) = deg2rad(0.02); % alpha_R
 du(4) = 0.1;           % thrust [N] (unused now but keep nonzero)
 du(5) = 0.01;          % speed [m/s] (since you treat it as an input)
 
@@ -45,7 +45,7 @@ disp(eigA(idx(1:min(6,end))).');
 %% check controlability for LQR (for u = kx controller)
 
 % Choose which inputs that i want actually control:
-% u = [alpha_FL, alpha_R, alpha_FR]  (ignore thrust/speed columns)
+% u = [alpha_FL, alpha_FR, alpha_R]  (ignore thrust/speed columns)
 Bact = B(:,1:3);
 Co = ctrb(A,Bact);
 fprintf('rank(ctrb) = %d of %d\n', rank(Co), size(A,1));
@@ -68,9 +68,9 @@ ix = [1 2 3 4 6 7];
 
 % Select what are we controlling and with what order
 iu = [1 2 3];
-% 1 alpha_FL   front-left flap
-% 2 alpha_R    rear flap
-% 3 alpha_FR   front-right flap
+% 1 alpha_FL
+% 2 alpha_FR
+% 3 alpha_R 
 
 Ar = A(ix,ix);
 Br = B(ix,iu);

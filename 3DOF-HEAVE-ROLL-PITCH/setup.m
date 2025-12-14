@@ -7,9 +7,6 @@ model_name = "boat_dynamics_model";
     
 % Obtain model parameters
 params = boat_model_parameters_3dof();   % Returns parameters structure
-evalin("base", 'Ts_tof = params.tof.sample_time;');
-evalin("base", 'Ts_gyro = params.gyro.sample_time;');
-evalin("base", 'Ts_accel = params.accel.sample_time;');
 
 % Create the bus object named boat_model_parameters
 busInfo = Simulink.Bus.createObject(params);  
@@ -17,6 +14,10 @@ busInfo = Simulink.Bus.createObject(params);
 boat_model_parameters = eval(busInfo.busName);   % busName is auto-generated
 
 % TODO: Create parameter set like sampling time etc... solver... tsim
+Ts_sim = 0.001; 
+
+% Temporary calculated K matrix for controller continuus
+load("tmp_controller.mat");
 
 % Open the Simulink model
 load_system(model_name);

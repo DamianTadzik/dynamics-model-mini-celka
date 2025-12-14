@@ -43,8 +43,8 @@ function [ xdot, info ] = boat_dynamics_3dof(x, u, params)
 
     %%  Unpack inputs
     alpha_Left      = u(1);
-    alpha_Rear      = u(2);
-    alpha_Right     = u(3);
+    alpha_Right     = u(2);
+    alpha_Rear      = u(3);
     F_thrust        = u(4);
     V_W             = u(5); % For now it is separate input, later will add fourth equation for x_W movement
 
