@@ -76,16 +76,22 @@ Ar = A(ix,ix);
 Br = B(ix,iu);
 
 % Penalization
-%       z zdot phi theta phidot thetadot 
-Q = diag([ 1000, 10, 200, 400, 2, 2 ]); 
+%           z zdot phi theta phidot thetadot 
+Q = diag([ 10, 50, 200, 200, .2, .2 ]); 
+% Q = diag([ 1000, 10, 200, 400, 2, 2 ]); 
 %          FL R FR
-R = diag([ 1, 1, 1 ] .*  1);
+R = diag([ 1, 1, 1 ] .*  160000);
 
 K = lqr(Ar,Br,Q,R);
 
+% Display the LQR Gain Matrix K:
+disp('LQR Gain Matrix K:'); disp(K);
+disp('Q:'); disp(Q);
+disp('R:'); disp(R);
+
 eig_cl = eig(Ar - Br*K);
 disp('Closed-loop max real eig:'); disp(max(real(eig_cl)))
-disp(eig_cl)
+disp('Closed-loop eig:'); disp(eig_cl)
 
 %% Save values for simulation in simulink
 save("tmp_controller.mat", "K", "u0", "x0", "ix", "iu");

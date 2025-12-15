@@ -1,4 +1,4 @@
-clear; clc;
+% clear; clc;
 
 % Load parameters
 params = boat_model_parameters_3dof();
