@@ -15,6 +15,7 @@ boat_model_parameters = eval(busInfo.busName);   % busName is auto-generated
 
 % TODO: Create parameter set like sampling time etc... solver... tsim
 Ts_sim = 0.001; 
+Ts_observer = 0.01;
 
 % Temporary calculated K matrix for controller continuus
 load("tmp_controller.mat");
@@ -22,6 +23,6 @@ load("tmp_controller.mat");
 % Open the Simulink model
 load_system(model_name);
 open_system(model_name);
-
+return
 %% See if the model builds
 set_param(model_name, "SimulationCommand", "update");

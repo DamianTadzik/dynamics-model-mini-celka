@@ -1,4 +1,4 @@
-function [ xdot, info ] = boat_dynamics_3dof(x, u, params)
+function [ xdot, info ] = boat_dynamics_3dof(x, u, w, params)
 %  Input
 %   x = [
 %       zW;              % 1 heave position (world frame, NED)
@@ -18,6 +18,11 @@ function [ xdot, info ] = boat_dynamics_3dof(x, u, params)
 %       alpha_Right
 %       F_thrust
 %       V_W      (approx surge speed in world x)
+%   ];
+%   w = [
+%       z_force_disturbance
+%       roll_torque_disturbance
+%       pitch_torque_disturbance
 %   ];
 %   parameters bus;
 %
@@ -47,6 +52,12 @@ function [ xdot, info ] = boat_dynamics_3dof(x, u, params)
     alpha_Rear      = u(3);
     F_thrust        = u(4);
     V_W             = u(5); % For now it is separate input, later will add fourth equation for x_W movement
+    
+    %% Unpack disturbances
+    % disturbances are just additional forces/torques acting on the system
+    F_z_dist = w(1);
+    tau_roll_dist = w(2);
+    tau_pitch_dist = w(3);
 
     %%  Unpack parameters
     m     = params.m;
@@ -185,6 +196,8 @@ function [ xdot, info ] = boat_dynamics_3dof(x, u, params)
 
     tau_total_B = tau_FL_B + tau_FR_B + tau_R_B + tau_T_B;
 
+    tau_total_B = tau_total_B + [tau_roll_dist; tau_pitch_dist; 0]; % Disturbance
+
     tau_roll_B  = tau_total_B(1);  % about x_B
     tau_pitch_B = tau_total_B(2);  % about y_B
     tau_yaw_B   = tau_total_B(3); % about z_B
@@ -199,6 +212,8 @@ function [ xdot, info ] = boat_dynamics_3dof(x, u, params)
 
     % In NED: +z down, so upward support is minus the z-component
     Fz_up = -F_total_W(3);   % >0 means net upward force from foils+thrust
+    
+    Fz_up = Fz_up + F_z_dist; % Add heave disturbance
 
     %% MODEL THE DISSIPATION FORCE!!!! that's hard actually 
     F_damp_z = 0;

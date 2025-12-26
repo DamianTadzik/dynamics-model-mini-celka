@@ -1,13 +1,15 @@
-% clear; clc;
+% clear; 
+clc;
 
 params = boat_model_parameters_3dof();
 
 load('trim_3dof_V3_zm0p1.mat','trim');
 x0 = trim.x0;
 u0 = trim.u0;
+w = [0; 0; 0]; %% No disturbances
 
 % Wrap your dynamics into f(x,u)->xdot
-f = @(x,u) boat_dynamics_3dof(x,u,params);
+f = @(x,u) boat_dynamics_3dof(x,u,w,params);
 
 % Step sizes (IMPORTANT: radians for angles/actuators)
 dx = zeros(size(x0));
@@ -42,14 +44,13 @@ disp('Top 6 eigenvalues (by real part):');
 disp(eigA(idx(1:min(6,end))).');
 
 
-%% check controlability for LQR (for u = kx controller)
+%% check controlability (for u = kx controller)
 
-% Choose which inputs that i want actually control:
+% Choose which inputs i control
 % u = [alpha_FL, alpha_FR, alpha_R]  (ignore thrust/speed columns)
 Bact = B(:,1:3);
 Co = ctrb(A,Bact);
 fprintf('rank(ctrb) = %d of %d\n', rank(Co), size(A,1));
-
 
 
 %% Try to get the K for LQR
@@ -66,6 +67,8 @@ ix = [1 2 3 4 6 7];
 % 7  q         pitch rate (body)
 % 8  r         yaw rate (body)
 
+% 9 10 11 augumented acutators dynamics?
+
 % Select what are we controlling and with what order
 iu = [1 2 3];
 % 1 alpha_FL
@@ -75,12 +78,15 @@ iu = [1 2 3];
 Ar = A(ix,ix);
 Br = B(ix,iu);
 
+Cor = ctrb(Ar,Br);
+fprintf('reduced rank(ctrb) = %d of %d\n', rank(Cor), size(A,1));
+
 % Penalization
-%           z zdot phi theta phidot thetadot 
-Q = diag([ 10, 50, 200, 200, .2, .2 ]); 
+%           z   zdot phi theta phidot thetadot 
+Q = diag([ 1000, 50, 2000, 20, 20, .2 ]); 
 % Q = diag([ 1000, 10, 200, 400, 2, 2 ]); 
-%          FL R FR
-R = diag([ 1, 1, 1 ] .*  160000);
+%            FL FR R
+R = diag([ 1, 1, 1000 ] .*  200000);
 
 K = lqr(Ar,Br,Q,R);
 
@@ -93,8 +99,26 @@ eig_cl = eig(Ar - Br*K);
 disp('Closed-loop max real eig:'); disp(max(real(eig_cl)))
 disp('Closed-loop eig:'); disp(eig_cl)
 
-%% Save values for simulation in simulink
-save("tmp_controller.mat", "K", "u0", "x0", "ix", "iu");
+%% Save values for continuus simulation in simulink
+save("tmp_continuus_controller.mat", "K", "u0", "x0", "ix", "iu");
+
+
+%% Discrete LQR 
+Ts_ctrl = 0.01;   % 100 Hz
+
+sysc = ss(Ar, Br, eye(size(Ar,1)), zeros(size(Ar,1), size(Br,2)));
+sysd = c2d(sysc, Ts_ctrl, 'zoh');   % ZOH is what your digital controller does
+Ad = sysd.A;
+Bd = sysd.B;
+
+Kd = dlqr(Ad, Bd, Q, R);
+
+eig_cl_d = eig(Ad - Bd*Kd);
+fprintf('Discrete closed-loop max |eig| = %.4f (must be in the unit circle)\n', max(abs(eig_cl_d)));
+disp('Discrete closed-loop eig:'); disp(eig_cl_d.');
+disp('Discrete closed-loop abs(eig):'); disp(abs(eig_cl_d.'));
+
+save("tmp_discrete_controller.mat", "Kd", "Ts_ctrl", "u0", "x0", "ix", "iu");
 
 
 %%

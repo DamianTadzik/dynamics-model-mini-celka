@@ -21,8 +21,8 @@ function y_noisy = apply_sensor_noise(y, params)
         y_noisy = y + params.noise_sigma .* randn(size(y));
     %%%% Add linearly dependant white noise
     else if isfield(params, "noise_sigma_a") && isfield(params, "noise_sigma_b")
-        sigma = params.noise_sigma_a .* y + params.noise_sigma_b;
-        y_noisy = y + sigma .* randn(size(y));
+            sigma = params.noise_sigma_a .* y + params.noise_sigma_b;
+            y_noisy = y + sigma .* randn(size(y));
     %%%% Do not add any noise
     else
         y_noisy = y;
