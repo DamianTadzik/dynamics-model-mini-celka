@@ -90,12 +90,12 @@ fprintf('Observability rank = %d of %d\n', rank(Ob_r), size(Ar,1));
 %% Augumented LQR 
 % Penalization for state error
 Q = diag([ ...
-    10000, ...   1   z       heave
-    .5, ...     2   zdot    heave velocity
+    12000, ...   1   z       heave
+    1, ...     2   zdot    heave velocity
     2000, ...   3   phi     roll angle
     200, ...     4   theta   pitch angle
     200, ...     6   p       roll rate (body)
-    20, ...     7   q       pitch rate (body)
+    800, ...     7   q       pitch rate (body)
     1000, ...    9   FL
     1000, ...    10  FR
     1000 ...     11  R

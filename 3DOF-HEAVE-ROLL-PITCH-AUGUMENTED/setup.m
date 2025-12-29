@@ -17,8 +17,9 @@ boat_model_parameters = eval(busInfo.busName);   % busName is auto-generated
 Ts_sim = 0.001; 
 Ts_observer = 0.01;
 
-% Temporary calculated K matrix for controller continuus
-load("tmp_controller.mat");
+load("trim_3dof_V3_zm0p1.mat")
+x0 = trim.x0;
+u0 = trim.u0;
 
 % Open the Simulink model
 load_system(model_name);
