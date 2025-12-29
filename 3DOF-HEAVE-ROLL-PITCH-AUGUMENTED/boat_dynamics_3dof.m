@@ -1,4 +1,4 @@
-function [ xdot, info ] = boat_dynamics_3dof(x, u, w, params)
+function [ xdot, info ] = boat_dynamics_3dof(x, u, w, params) %#codegen
 %  Input
 %   x = [
 %       zW;              % 1 heave position (world frame, NED)

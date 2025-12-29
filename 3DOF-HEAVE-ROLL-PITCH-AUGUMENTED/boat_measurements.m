@@ -1,4 +1,4 @@
-function [ gyro_vector, accel_vector, distance_vector ] = boat_measurements(x, xdot, params)
+function [ gyro_vector, accel_vector, distance_vector ] = boat_measurements(x, xdot, params) %#codegen
 % This function returns three vectors computed from the boat state x vector
 %   gyro_vector [3x1] [gx gy gz] rotational velocities in a body frame
 %   accel_vector [3x1] [ax ay az] linear accelerations in a body frame

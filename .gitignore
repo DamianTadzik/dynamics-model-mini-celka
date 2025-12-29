@@ -1,4 +1,4 @@
 **/slprj/
 *.asv
 *.slxc
-
+*.mexw64

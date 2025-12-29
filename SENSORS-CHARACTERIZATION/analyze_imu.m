@@ -20,22 +20,22 @@ accel_data = [accel_data; sns_cut_fragment(T.seconds_since_start, T.ACCELEROMETE
 
 
 %% Analyze
-q_step = 0.0609756; % +/-2000 deg/s per 16 bits 
+q_step_gyro = 0.0609756; % +/-2000 deg/s per 16 bits 
 % 16.4 LSB/DPS
 % 1/16.4
 gyro = [];
 for i = 1:length(gyro_data)
-    gyro(i).params = sns_analyze_imu(gyro_data(i).t, detrend(gyro_data(i).x), q_step);
+    gyro(i).params = sns_analyze_imu(gyro_data(i).t, detrend(gyro_data(i).x), q_step_gyro);
     disp(gyro(i).params)
 end
 
 
-q_step = 0.000061035; % +/-2 G per 16 bits
+q_step_accel = 0.000061035; % +/-2 G per 16 bits
 % 2 / 2^15;
 % 16384 LSB/g
 accel = [];
 for i = 1:length(accel_data)
-    accel(i).params = sns_analyze_imu(accel_data(i).t, detrend(accel_data(i).x), q_step);
+    accel(i).params = sns_analyze_imu(accel_data(i).t, detrend(accel_data(i).x), q_step_accel);
     disp(accel(i).params)
 end
 
@@ -63,14 +63,14 @@ for i = 1:length(accel_data)
 end
 %% Save
 
-accelerometer_noise_parameters.quantization_step = 0.000061035;
+accelerometer_noise_parameters.quantization_step = q_step_accel;
 accelerometer_noise_parameters.noise_sigma = [
     accel(1).params.noise_sigma;
     accel(2).params.noise_sigma;
     accel(3).params.noise_sigma
 ];
 
-gyroscope_noise_parameters.quantization_step = 0.0609756;
+gyroscope_noise_parameters.quantization_step = q_step_gyro;
 gyroscope_noise_parameters.noise_sigma = [
     gyro(1).params.noise_sigma;
     gyro(2).params.noise_sigma;

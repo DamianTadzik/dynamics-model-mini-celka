@@ -6,12 +6,13 @@ clc; clear; bdclose all; close all;
 model_name = "boat_dynamics_model";
     
 % Obtain model parameters
-params = boat_model_parameters_3dof();   % Returns parameters structure
+plant_params = boat_model_parameters_3dof();   % Returns plant parameters structure
+busInfo_plant = Simulink.Bus.createObject(plant_params);   % Create the bus object
+plant_params_bus = eval(busInfo_plant.busName);
 
-% Create the bus object named boat_model_parameters
-busInfo = Simulink.Bus.createObject(params);  
-% FIXME why does this command creates a lot of Simulink.bus objects?
-boat_model_parameters = eval(busInfo.busName);   % busName is auto-generated
+ctrl_params = boat_controller_parameters(); % Returns controller parameters structure
+busInfo_ctrl = Simulink.Bus.createObject(ctrl_params);   % Create the bus object
+ctrl_params_bus = eval(busInfo_ctrl.busName);
 
 % TODO: Create parameter set like sampling time etc... solver... tsim
 Ts_sim = 0.001; 
@@ -27,3 +28,5 @@ open_system(model_name);
 return
 %% See if the model builds
 set_param(model_name, "SimulationCommand", "update");
+
+%% Helper setup functions

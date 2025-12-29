@@ -1,4 +1,4 @@
-function params = boat_model_parameters_3dof()
+function params = boat_model_parameters_3dof() %#codegen
 % note: _B means that parameter is in the body frame - relative to COM
 %
 % World frame W: NED (x forward, y right, z down), water surface at z_W = 0
@@ -98,7 +98,7 @@ function params = boat_model_parameters_3dof()
 
     %% Accelerometer sensor noise, quantization and sampling time
     params.accel.noise_sigma = data.accelerometer_noise_parameters.noise_sigma;
-    params.accel.quantization_step = data.gyroscope_noise_parameters.quantization_step;
+    params.accel.quantization_step = data.accelerometer_noise_parameters.quantization_step;
     params.accel.sample_time = 0.01; % [s]
     params.accel.range_g = 2; % [g]
     
