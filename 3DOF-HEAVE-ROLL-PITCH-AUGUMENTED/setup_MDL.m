@@ -16,7 +16,6 @@ ctrl_params_bus = eval(busInfo_ctrl.busName);
 
 % TODO: Create parameter set like sampling time etc... solver... tsim
 Ts_sim = 0.001; 
-Ts_observer = 0.01;
 
 load("trim_3dof_V3_zm0p1.mat")
 x0 = trim.x0;

@@ -1,3 +1,4 @@
+% find_equilibrium_3dof.m
 % clear; clc;
 
 % Load parameters

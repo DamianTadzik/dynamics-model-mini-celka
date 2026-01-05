@@ -300,8 +300,15 @@ function [ xdot, info ] = boat_dynamics_3dof(x, u, w, params) %#codegen
     xdot(10) = alpha_FR_dot;
     xdot(11) = alpha_R_dot;
 
-    %% Update the info vector
-    % TBD some info regarding out of water for simulation stop or sth like
-    % that
-    info = [ F_FL_B(3); F_FR_B(3); F_R_B(3) ];
+    %% Update the info vector used for RL
+    info = [ ...
+        p_FL_W(3);         % 1  [m]  front-left foil vertical position (W frame)
+        p_FR_W(3);         % 2  [m]  front-right foil vertical position (W frame)
+        p_R_W(3);          % 3  [m]  rear foil vertical position (W frame)
+        V_submerged;       % 4  [m^3] submerged hull volume
+        tau_total_B(1);    % 5  [Nm] roll torque  (body frame)
+        tau_total_B(2);    % 6  [Nm] pitch torque (body frame)
+        tau_total_B(3);    % 7  [Nm] yaw torque   (body frame)
+        V_W                % 8  [m/s] forward velocity
+    ];
 end
