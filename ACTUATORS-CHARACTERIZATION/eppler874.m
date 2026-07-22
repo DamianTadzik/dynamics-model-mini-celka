@@ -1,4 +1,75 @@
 clc; clear; close all;
+
+% Load CSV (assumes file is in current folder)
+T = readtable('xf-e874-il-100000-n5.csv','FileType','text','Delimiter',',','ReadVariableNames',false);
+% If file has header, uncomment next line to read with headers:
+% T = readtable('xf-e874-il-100000-n5.csv');
+
+% Convert to numeric matrix (drop non-numeric rows if any)
+data_csv = table2array(varfun(@double, T));
+
+% If table2array failed due to mixed types, try converting columns individually
+if any(isnan(data_csv(:)))
+    numCols = width(T);
+    data_csv = zeros(height(T), numCols);
+    for i=1:numCols
+        col = T{:,i};
+        if iscell(col)
+            data_csv(:,i) = str2double(col);
+        else
+            data_csv(:,i) = double(col);
+        end
+    end
+end
+
+% Assign commonly expected columns if present: alpha, CL, CD
+if size(data_csv,2) >= 3
+    alpha_vals = data_csv(:,1);
+    CL_vals = data_csv(:,2);
+    CD_vals = data_csv(:,3);
+else
+    error('CSV does not contain at least three columns for alpha, CL, CD.');
+end
+set(groot,'DefaultAxesFontName','Times New Roman','DefaultTextFontName','Times New Roman');
+
+% WLICZENIE ASPECT RATIO
+ARf = 0.204^2 / 8080e-6;
+ARr = 0.220^2 / 8708e-6;
+delta_a_f = rad2deg( CL_vals ./ (pi*ARf));
+delta_a_r = rad2deg( CL_vals ./ (pi*ARr));
+
+
+% Prepare and plot CL figure
+fig_cl = figure('Name','fig_eppler874_cl','Units','inches','Position',[1 1 6 4]);
+plot(alpha_vals, CL_vals, 'g.', 'MarkerSize', 10); hold on;
+% plot(alpha_vals+delta_a_r, CL_vals);
+% plot(alpha_vals+delta_a_f, CL_vals); hold off;
+xlabel('\alpha (deg)', 'FontName', 'Times New Roman'); 
+ylabel('C_L', 'FontName', 'Times New Roman');
+grid on;
+set(gca,'FontName','Times New Roman');
+% % Prepare for export as PDF
+% set(fig_cl,'PaperUnits','inches','PaperPosition',[0 0 6 4],'PaperSize',[6 4]);
+
+% Prepare and plot CD figure
+fig_cd = figure('Name','fig_eppler874_cd','Units','inches','Position',[2 2 6 4]);
+plot(alpha_vals, CD_vals, 'r.', 'MarkerSize', 10);
+xlabel('\alpha (deg)', 'FontName', 'Times New Roman'); 
+ylabel('C_D', 'FontName', 'Times New Roman');
+grid on;
+set(gca,'FontName','Times New Roman');
+% % Prepare for export as PDF
+% set(fig_cd,'PaperUnits','inches','PaperPosition',[0 0 6 4],'PaperSize',[6 4]);
+
+
+exportgraphics(fig_cl, 'fig_eppler874_cl.pdf', ...
+    'ContentType', 'vector', ...
+    'BackgroundColor', 'none');
+exportgraphics(fig_cd, 'fig_eppler874_cd.pdf', ...
+    'ContentType', 'vector', ...
+    'BackgroundColor', 'none');
+
+return
 %% http://airfoiltools.com/polar/details?polar=xf-e874-il-1000000
 % [ alpha , CL , CD , CDp , CM , Top_Xtr , Bot_Xtr ]
 data = [
