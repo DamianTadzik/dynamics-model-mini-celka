@@ -87,13 +87,23 @@ coeffs = polyfit(x_modes, noise_sigmas, 1);
 a = coeffs(1);
 b = coeffs(2);
 
-figure;
+%%
+fig = figure('Name', 'noise_vs_distance','Units','inches','Position',[2 2 6 4]);
 plot(x_modes, noise_sigmas, 'o'); hold on;
 plot(x_modes, a*x_modes + b, '--'); hold off;
-xlabel('x\_mode');
-ylabel('Noise \sigma');
-title('Noise \sigma vs x\_mode');
+% xlabel('x\_mode', 'FontName', 'Times New Roman'); 
+% ylabel('Noise \sigma', 'FontName', 'Times New Roman'); 
+% title('Noise \sigma vs x\_mode');
 grid on;
+set(gca,'FontName','Times New Roman');
+
+xlabel('Measured distance mode [mm]', 'FontName', 'Times New Roman')
+ylabel('Noise standard deviation \sigma [mm]', 'FontName', 'Times New Roman')
+legend('Measurements', 'Linear regression', 'Location', 'northwest', 'FontName', 'Times New Roman')
+
+exportgraphics(fig, 'sensor_TOF_noise_vs_distance.pdf', ...
+    'ContentType', 'vector', ...
+    'BackgroundColor', 'none');
 
 %% Save the calculated coefficents to be used in a noise generator
 
@@ -103,7 +113,7 @@ tof_noise_parameters.noise_sigma_b = b;
 % save tof_noise_parameters.mat tof_noise_parameters
 
 %% Simulate the signal and analyze
-clc; clear; 
+% clc; clear; 
 
 load tof_noise_parameters.mat
 
@@ -119,4 +129,54 @@ for k = 50:50:150
     params_simulated = sns_analyze_tof(t, x_simulated, tof_noise_parameters.quantization_step)
 end
 
+%% non normality chek
 
+
+for i = 1:length(sensor_data)
+% for i = 15
+    figure
+    qqplot(sensor_data(i).x)
+end
+
+%% MAGISTERKA WYKRESY
+
+i = 15; % figura 15 jako reprezentant 
+% i = 9; % figura 9 do QQ plota mega benger
+% i = 7; % najlepszy kompromis
+
+time = sensor_data(i).t - sensor_data(i).t(1);
+value = sensor_data(i).x;
+
+% Plot przebiegu z sensora
+f = figure('Name','sensor_output','Units','inches','Position',[2 2 6 4]);
+plot(time, value, '-o')
+xlabel('Time [s]','FontName','Times New Roman')
+ylabel('Measured distance [mm]','FontName','Times New Roman')
+set(gca,'FontName','Times New Roman');
+
+exportgraphics(f, 'sensor_output.pdf', ...
+    'ContentType', 'vector', ...
+    'BackgroundColor', 'none');
+
+% Plot histogramu
+ff = figure('Name','sensor_TOF_histogram','Units','inches','Position',[2 2 6 4]);
+    q_step = 2;
+    noise = (value - mode(value));
+    edges = (max(value) - min(value))/q_step;
+    edges = (-edges:edges+1)*q_step - q_step/2; 
+    histogram(noise, edges); grid on;
+
+xlabel('Deviation from modal distance [mm]','FontName','Times New Roman')
+ylabel('Number of samples','FontName','Times New Roman')
+
+set(gca,'FontName','Times New Roman');
+exportgraphics(ff, 'sensor_TOF_histogram.pdf', ...
+    'ContentType', 'vector', ...
+    'BackgroundColor', 'none');
+
+% % Q-Q plot?
+% fff = figure(Name='qq_plot');
+% set(gca,'FontName','Times New Roman');
+% qqplot(value)
+
+% porownanie jest wyzej w skrypcie

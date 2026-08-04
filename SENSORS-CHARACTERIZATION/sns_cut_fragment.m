@@ -21,19 +21,21 @@ function ret = sns_cut_fragment(t, x, t_start, t_end)
     t_trim = t(idx);
 
     %% Plot
-    figure; hold on;
-    plot(t, x, 'b-', 'LineWidth', 1);
-    ylims = ylim;
-
-    % Mark trimming boundaries
-    plot([t_start t_start], ylims, 'r--', 'LineWidth', 1.5);
-    plot([t_end   t_end],   ylims, 'r--', 'LineWidth', 1.5);
-
-    title("Signal with selected fragment");
-    xlabel("Time [s]");
-    ylabel("Signal");
-    grid on;
-    legend("Signal", "t\_start", "t\_end");
+    if (false)
+        figure; hold on;
+        plot(t, x, 'b-', 'LineWidth', 1);
+        ylims = ylim;
+    
+        % Mark trimming boundaries
+        plot([t_start t_start], ylims, 'r--', 'LineWidth', 1.5);
+        plot([t_end   t_end],   ylims, 'r--', 'LineWidth', 1.5);
+    
+        title("Signal with selected fragment");
+        xlabel("Time [s]");
+        ylabel("Signal");
+        grid on;
+        legend("Signal", "t\_start", "t\_end");
+    end
 
     %% Return
     ret.x = x_trim;
