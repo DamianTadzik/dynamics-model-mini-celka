@@ -2,13 +2,13 @@ function [trim, info_out] = find_equilibrium_4dof(varargin)
 
     % defaults 
     cfg.params   = boat_model_parameters_4dof();
-    cfg.xWdot    = 2.0;
+    cfg.xWdot    = 2.5;
     cfg.zW       = -0.10;
     cfg.phi      = 0;
     cfg.theta    = 0;
-    cfg.v0       = [-5;-5;-5;1];
+    cfg.v0       = [-5;-5;-5;8];
     cfg.lb       = [-6;-6;-6;0];
-    cfg.ub       = [12;12;12;5];
+    cfg.ub       = [12;12;12;20];
     
     cfg.opts = optimoptions('lsqnonlin', ...
         'Display','iter', ...

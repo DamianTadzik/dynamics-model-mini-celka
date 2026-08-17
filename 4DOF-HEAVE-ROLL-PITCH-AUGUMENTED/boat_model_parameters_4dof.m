@@ -1,4 +1,4 @@
-function params = boat_model_parameters_3dof() %#codegen
+function params = boat_model_parameters_4dof() %#codegen
 % note: _B means that parameter is in the body frame - relative to COM
 %
 % World frame W: NED (x forward, y right, z down), water surface at z_W = 0
@@ -41,6 +41,16 @@ function params = boat_model_parameters_3dof() %#codegen
         +0.178      % [m] below COM
     ]; 
 
+    %% Strut drag
+    data = load("..\DRAG-CHARACTERIZATION\drag_front_strut.mat")
+    params.front_struts.CD = [data.export.CD];
+    params.front_struts.chord_m = [data.export.chord_m];
+    params.front_struts.distance_m = [data.export.distance_m];
+
+    % params.rear_strut.CD = NaN;
+    % params.rear_strut.chord_m = NaN;
+    % params.rear_strut.distance_m = NaN;
+
     %% Hydrofoil area 
     % S_front = 8080 mm^2
     % S_rear  = 8700 mm^2
@@ -67,7 +77,7 @@ function params = boat_model_parameters_3dof() %#codegen
     data = load("../ACTUATORS-CHARACTERIZATION/eppler874.mat");
     params.hydrofoils.LUT.alpha = data.LUT_alpha;
     params.hydrofoils.LUT.CL    = data.LUT_CL;
-    params.hydrofoils.LUT.CD    = data.LUT_CD;
+    params.hydrofoils.LUT.CD    = data.LUT_CD; % TODO HERE 
 
     %% Distance sensors placement in a B frame
     params.tof.pos_FL_B = [ +225; -182; -37 ] / 1000;  % [m]

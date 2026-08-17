@@ -213,14 +213,52 @@ function [ xdot, info ] = boat_dynamics_4dof(x, u, w, params) %#codegen
     %%% wow i do not think i will ever do this
         % TODO: replace with proper 3D LUT including roll/pitch dependence
 
-    
+    %% Strut drag
+    F_strut_FL_B = zeros(3,1);
+    tau_strut_FL_B = zeros(3,1);
+
+    F_strut_FR_B = zeros(3,1);
+    tau_strut_FR_B = zeros(3,1);
+
+    F_strut_R_B = zeros(3,1);
+    tau_strut_R_B = zeros(3,1);
+
+    [F_strut_FL_B, tau_strut_FL_B] = strut_drag(...
+        r_FL_B, ...
+        params.front_struts.distance_m, ...
+        params.front_struts.chord_m, ...
+        params.front_struts.CD, ...
+        0.002, ...
+        ...
+        xWdot, zW, R_BW, R_WB, rho);
+
+    [F_strut_FR_B, tau_strut_FR_B] = strut_drag(...
+        r_FR_B, ...
+        params.front_struts.distance_m, ...
+        params.front_struts.chord_m, ...
+        params.front_struts.CD, ...
+        0.002, ...
+        ...
+        xWdot, zW, R_BW, R_WB, rho);
+
+    [F_strut_R_B, tau_strut_R_B] = strut_drag(...
+        r_R_B, ...
+        params.front_struts.distance_m, ...
+        params.front_struts.chord_m, ...
+        params.front_struts.CD, ...
+        0.002, ...
+        ...
+        xWdot, zW, R_BW, R_WB, rho);
+
+
     %%  Torques via cross products in body frame
     tau_FL_B = cross(r_FL_B, F_FL_B);
     tau_FR_B = cross(r_FR_B, F_FR_B);
     tau_R_B  = cross(r_R_B,  F_R_B);
     tau_T_B  = cross(r_T_B,  F_T_B);
 
-    tau_total_B = tau_FL_B + tau_FR_B + tau_R_B + tau_T_B;
+    tau_total_B = tau_FL_B + tau_FR_B + tau_R_B + tau_T_B + ...
+        tau_strut_FL_B + tau_strut_FR_B + tau_strut_R_B;
 
     tau_total_B = tau_total_B + [tau_roll_dist; tau_pitch_dist; 0]; % Disturbance
 
@@ -231,7 +269,8 @@ function [ xdot, info ] = boat_dynamics_4dof(x, u, w, params) %#codegen
     %% Resultant forces (for heave)
     % Sum only hydrofoil forces for vertical support 
     % (thrust has no z-component in a _B frame but when boat pitches up it does have z-component in _W frame)
-    F_total_B = F_FL_B + F_FR_B + F_R_B + F_T_B;
+    F_total_B = F_FL_B + F_FR_B + F_R_B + F_T_B + ...
+        F_strut_FL_B + F_strut_FR_B + F_strut_R_B;
 
     % Transform to world frame
     F_total_W = R_BW * F_total_B;
@@ -320,6 +359,63 @@ function [ xdot, info ] = boat_dynamics_4dof(x, u, w, params) %#codegen
         tau_total_B(1);    % 5  [Nm] roll torque  (body frame)
         tau_total_B(2);    % 6  [Nm] pitch torque (body frame)
         tau_total_B(3);    % 7  [Nm] yaw torque   (body frame)
-        xWdot              % 8  [m/s] forward velocity
+        xWdot;             % 8  [m/s] forward velocity
+
+        F_strut_FL_B(1); % 9 Newton drag force
+        F_strut_FR_B(1);
+        F_strut_R_B(1);
+
+        F_FL_B(1); % 12
+        F_FR_B(1);
+        F_R_B(1);
+
+        F_T_B(1); % 15
     ];
+end
+
+function [F_strut_B, tau_strut_B] = strut_drag(...
+    r_bottom_position_B, ...
+    strip_distances_m, ...
+    strip_chords_m, ...
+    strip_CDs, ...
+    strip_dz, ...
+    ...
+    xWdot, ...
+    zW, ...
+    ...
+    R_BW, ...
+    R_WB, ...
+    rho)
+    
+    F_strut_B = zeros(3,1);
+    tau_strut_B = zeros(3,1);
+
+    e_drag_W = [-1; 0; 0];  % oppsite to the xdot_W? approximately yes
+    e_drag_B = R_WB * e_drag_W;
+
+
+    for i = 1:length(strip_distances_m)
+        % Position of each strip centre in body frame
+        r_i_B = r_bottom_position_B - [0; 0; strip_distances_m(i)];
+
+        % Position in world frame
+        p_i_W = [0; 0; zW] + R_BW * r_i_B;
+
+        % NED: z > 0 means below water surface
+        if p_i_W(3) > 0
+            % Surface area
+            S_i = strip_chords_m(i) * strip_dz;
+
+            % Drag
+            D_i = 0.5 * rho * xWdot^2 ...
+                * strip_CDs(i) ...
+                * S_i;
+
+            F_i_B = D_i * e_drag_B;
+
+            F_strut_B = F_strut_B + F_i_B;
+            tau_strut_B = tau_strut_B ...
+                        + cross(r_i_B, F_i_B);
+        end
+    end
 end
