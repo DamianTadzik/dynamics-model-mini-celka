@@ -1,17 +1,19 @@
-function [ gyro_vector, accel_vector, distance_vector ] = boat_measurements(x, xdot, params) %#codegen
-% This function returns three vectors computed from the boat state x vector
+function [ gyro_vector, accel_vector, distance_vector, gps_speed ] = boat_measurements(x, xdot, params) %#codegen
+% This function returns four vectors computed from the boat state x vector
 %   gyro_vector [3x1] [gx gy gz] rotational velocities in a body frame
 %   accel_vector [3x1] [ax ay az] linear accelerations in a body frame
 %   distance_vector [4x1] [front_left, front_right, rear_left, rear_right]
-%
+%   gps_speed [1x1] 
+
 % x vector values are in SI units but my sensors are reporting different
 % units so scalling is needed:
 %   gyro_vector [dps] degrees per second
 %   accel_vector [g]
 %   distance_vector [mm]
+%   gps_speed [m/s]
 
     %% Gyro
-    % Gyro has some max measurement value, and gyro output is in dps not rads
+    % Gyro output is in dps not rads
 
     % _B frame rotation rates
     gyro_rads = [x(8); x(9); x(10)];
@@ -19,9 +21,8 @@ function [ gyro_vector, accel_vector, distance_vector ] = boat_measurements(x, x
     % Convert to radians per second
     gyro_dps = rad2deg(gyro_rads);
 
-    % Clamp to allowed sensor range
-    range_dps = params.gyro.range_dps;
-    gyro_vector = min(max(gyro_dps, -range_dps), range_dps);
+    gyro_vector = gyro_dps;
+
     
     %% Rotation matrix
     phi_BW        = x(5);
@@ -47,8 +48,9 @@ function [ gyro_vector, accel_vector, distance_vector ] = boat_measurements(x, x
     R_WB = (R_z * R_y * R_x).';  % world -> body rotation
     R_BW = R_WB'; % body -> world rotation
 
+    
     %% Accel
-    % Accel has some max value that it can measure
+    % Accel output is in g not m/s^2
 
     % Model contains only z_W at the time
     accel_mps_W = [xdot(2); 0; xdot(4)+params.g]; 
@@ -57,15 +59,11 @@ function [ gyro_vector, accel_vector, distance_vector ] = boat_measurements(x, x
     accel_mps_B = R_WB * accel_mps_W;
 
     accel_g_B = accel_mps_B / params.g;
+    accel_vector = accel_g_B;
 
-    % Clamp to allowed sensor range
-    range_g = params.accel.range_g;
-    accel_vector = min(max(accel_g_B, -range_g), range_g);
 
     %% ToF
-    % If it's underwater then 0
-    % If it's over the range then 0
-    % ToF sensor has conical FoV, how to account for that???
+    % If it's 'underwater' then 0 dont allow for negative meas XD
 
     p_COM_W = [0; 0; x(3)];
 
@@ -90,9 +88,14 @@ function [ gyro_vector, accel_vector, distance_vector ] = boat_measurements(x, x
 
     distance_mm = distance_m .* 1000;
 
-    % Clamp to allowed sensor range
-    range_mm_min = params.tof.range_mm_min;
-    range_mm_max = params.tof.range_mm_max;
-    distance_vector = min(max(distance_mm, range_mm_min), range_mm_max);
+    % To zero the negative measurements
+    distance_vector = max(distance_mm, 0);
+
+
+    %% GPS
+    u = x(2);   % longitudinal velocity
+    v = 0;      % sway neglected in the model
+    gps_speed = sqrt(u^2 + v^2);
+
 
 end
