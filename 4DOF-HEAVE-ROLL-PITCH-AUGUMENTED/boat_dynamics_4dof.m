@@ -104,10 +104,6 @@ function [ xdot, info ] = boat_dynamics_4dof(x, u, w, params) %#codegen
     S_front = params.hydrofoils.S_front;
     S_rear  = params.hydrofoils.S_rear;
 
-    % CL CD LUTs 
-    LUT_alpha = params.hydrofoils.LUT.alpha;
-    LUT_CL    = params.hydrofoils.LUT.CL;
-    LUT_CD    = params.hydrofoils.LUT.CD;
 
     %% Rotation matrices
     cphi = cos(phi_BW);   sphi = sin(phi_BW);
@@ -132,54 +128,76 @@ function [ xdot, info ] = boat_dynamics_4dof(x, u, w, params) %#codegen
     % From W to B frame     b_frame_vector = R_WB * w_frame_vector;
     R_WB = R_BW.';
 
-    %% Lift and drag coefficients (We account for the boat pitch in CD/CL calculation)
-    alpha_deg_FL = min(max(alpha_FL_act  + rad2deg(theta_BW), LUT_alpha(1)), LUT_alpha(end)); % [deg]
-    alpha_deg_FR = min(max(alpha_FR_act  + rad2deg(theta_BW), LUT_alpha(1)), LUT_alpha(end));
-    alpha_deg_R  = min(max(alpha_R_act   + rad2deg(theta_BW), LUT_alpha(1)), LUT_alpha(end));
+    %% Local flow velocity, and resulting inflow angle at each foil
+    v_COM_W = [xWdot; 0; zWdot];
+    v_COM_B = R_WB * v_COM_W;
+    
+    v_FL_B = v_COM_B + cross(omega_B, r_FL_B);
+    v_FR_B = v_COM_B + cross(omega_B, r_FR_B);
+    v_R_B  = v_COM_B + cross(omega_B, r_R_B);
 
-    CL_FrontLeft  = interp1(LUT_alpha, LUT_CL, alpha_deg_FL, 'linear', 'extrap');
-    CL_FrontRight = interp1(LUT_alpha, LUT_CL, alpha_deg_FR, 'linear', 'extrap');
-    CL_Rear       = interp1(LUT_alpha, LUT_CL, alpha_deg_R,  'linear', 'extrap');
+    gamma_FL = atan2(v_FL_B(3), v_FL_B(1));
+    gamma_FR = atan2(v_FR_B(3), v_FR_B(1));
+    gamma_R  = atan2(v_R_B(3),  v_R_B(1));
+    
+    alpha_deg_FL = alpha_FL_act + rad2deg(gamma_FL);
+    alpha_deg_FR = alpha_FR_act + rad2deg(gamma_FR);
+    alpha_deg_R  = alpha_R_act  + rad2deg(gamma_R);
 
-    CD_FrontLeft  = interp1(LUT_alpha, LUT_CD, alpha_deg_FL, 'linear', 'extrap');
-    CD_FrontRight = interp1(LUT_alpha, LUT_CD, alpha_deg_FR, 'linear', 'extrap');
-    CD_Rear       = interp1(LUT_alpha, LUT_CD, alpha_deg_R,  'linear', 'extrap');
+    %% Lift and drag coefficients
+    % Account for boat pitch in alpha in CL/CD(alpha) calculation.
+    alpha_deg_FL = min(max(alpha_deg_FL, params.hydrofoils.LUT.front.alpha(1)), params.hydrofoils.LUT.front.alpha(end)); % [deg]
+    alpha_deg_FR = min(max(alpha_deg_FR, params.hydrofoils.LUT.front.alpha(1)), params.hydrofoils.LUT.front.alpha(end));
+    alpha_deg_R  = min(max(alpha_deg_R, params.hydrofoils.LUT.rear.alpha(1)), params.hydrofoils.LUT.rear.alpha(end));
+
+    CL_FrontLeft  = interp1(params.hydrofoils.LUT.front.alpha, params.hydrofoils.LUT.front.CL, alpha_deg_FL, 'linear', 'extrap');
+    CL_FrontRight = interp1(params.hydrofoils.LUT.front.alpha, params.hydrofoils.LUT.front.CL, alpha_deg_FR, 'linear', 'extrap');
+    CL_Rear       = interp1(params.hydrofoils.LUT.rear.alpha,  params.hydrofoils.LUT.rear.CL, alpha_deg_R,  'linear', 'extrap');
+
+    CD_FrontLeft  = interp1(params.hydrofoils.LUT.front.alpha, params.hydrofoils.LUT.front.CD, alpha_deg_FL, 'linear', 'extrap');
+    CD_FrontRight = interp1(params.hydrofoils.LUT.front.alpha, params.hydrofoils.LUT.front.CD, alpha_deg_FR, 'linear', 'extrap');
+    CD_Rear       = interp1(params.hydrofoils.LUT.rear.alpha,  params.hydrofoils.LUT.rear.CD, alpha_deg_R,  'linear', 'extrap');
+
+    %% Local hydrofoil flow velocity in x_B-z_B plane
+    v_FL_xz_B = [v_FL_B(1); 0; v_FL_B(3)];
+    v_FR_xz_B = [v_FR_B(1); 0; v_FR_B(3)];
+    v_R_xz_B  = [v_R_B(1);  0; v_R_B(3)];
+    
+    V_FL = norm(v_FL_xz_B);
+    V_FR = norm(v_FR_xz_B);
+    V_R  = norm(v_R_xz_B);
 
     %%  Lift / drag magnitudes 
-    % Assumptions:
-    %   - xWdot is the only velocity that is taken into account when
-    %   calculating FL and FD magintudes, we omit the zdot_W (vertical
-    %   speed as it has very little influence - To Be Checked)
-    %   - we also omit the speed coming from the rotation... that has to be
-    %   checked for sure TODO
-
-    FL_FrontLeft  = 0.5 * rho * S_front * xWdot^2 * CL_FrontLeft;
-    FL_FrontRight = 0.5 * rho * S_front * xWdot^2 * CL_FrontRight;
-    FL_Rear       = 0.5 * rho * S_rear  * xWdot^2 * CL_Rear;
+    FL_FrontLeft  = 0.5 * rho * S_front * V_FL^2 * CL_FrontLeft;
+    FL_FrontRight = 0.5 * rho * S_front * V_FR^2 * CL_FrontRight;
+    FL_Rear       = 0.5 * rho * S_rear  * V_R^2 * CL_Rear;
     
-    FD_FrontLeft  = 0.5 * rho * S_front * xWdot^2 * CD_FrontLeft;
-    FD_FrontRight = 0.5 * rho * S_front * xWdot^2 * CD_FrontRight;
-    FD_Rear       = 0.5 * rho * S_rear  * xWdot^2 * CD_Rear;
+    FD_FrontLeft  = 0.5 * rho * S_front * V_FL^2 * CD_FrontLeft;
+    FD_FrontRight = 0.5 * rho * S_front * V_FR^2 * CD_FrontRight;
+    FD_Rear       = 0.5 * rho * S_rear  * V_R^2 * CD_Rear;
 
     %% Lift / drag vectors in the _W/_B? frame
-    % Assumptions:
-    %   - boat is moving along x_W and z_W but we exclude the vertical
-    %   movement from lift/drag force calculations so xdot_W movement is the 
-    %   only contributor to the lift force.
-    %   - Drag is opposing the xdot_W speed always in that case drag is [-1, 0, 0]_W
-    %   - Lift is almost vertical in _W, but it is tilted by a roll angle 
-    %   (it is acting perpendicular to the wingspan) [0, sin(phi), -cos(phi)]_W.
+    % Hydrofoil span direction
+    e_span_B = [0; 1; 0];
     
-    e_drag_W = [-1; 0; 0 ];                 % oppsite to the xdot_W
-    e_lift_W = [ 0; sin(phi_BW); -cos(phi_BW) ];  % tilted vertical, perpendicular to xdot_W
+    % Drag acts opposite to the local hydrofoil velocity
+    e_drag_FL_B = -v_FL_xz_B / V_FL;
+    e_drag_FR_B = -v_FR_xz_B / V_FR;
+    e_drag_R_B  = -v_R_xz_B  / V_R;
     
-    e_lift_B = R_WB * e_lift_W;
-    e_drag_B = R_WB * e_drag_W;
-
+    % Lift is perpendicular to both the local velocity and the foil span
+    e_lift_FL_B = cross(e_span_B, v_FL_xz_B);
+    e_lift_FR_B = cross(e_span_B, v_FR_xz_B);
+    e_lift_R_B  = cross(e_span_B, v_R_xz_B);
+    
+    e_lift_FL_B = e_lift_FL_B / norm(e_lift_FL_B);
+    e_lift_FR_B = e_lift_FR_B / norm(e_lift_FR_B);
+    e_lift_R_B  = e_lift_R_B  / norm(e_lift_R_B);
+    
     % Hydrofoil forces
-    F_FL_B = FL_FrontLeft  * e_lift_B + FD_FrontLeft  * e_drag_B;
-    F_FR_B = FL_FrontRight * e_lift_B + FD_FrontRight * e_drag_B;
-    F_R_B  = FL_Rear  * e_lift_B + FD_Rear  * e_drag_B;
+    F_FL_B = FL_FrontLeft  * e_lift_FL_B + FD_FrontLeft  * e_drag_FL_B;
+    F_FR_B = FL_FrontRight * e_lift_FR_B + FD_FrontRight * e_drag_FR_B;
+    F_R_B  = FL_Rear       * e_lift_R_B  + FD_Rear       * e_drag_R_B;
 
     % Propeller force (along +x_B)
     F_T_B  = [F_thrust; 0; 0];

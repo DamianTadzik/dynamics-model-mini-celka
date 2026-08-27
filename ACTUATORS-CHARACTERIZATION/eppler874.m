@@ -32,12 +32,6 @@ else
 end
 set(groot,'DefaultAxesFontName','Times New Roman','DefaultTextFontName','Times New Roman');
 
-% WLICZENIE ASPECT RATIO
-ARf = 0.204^2 / 8080e-6;
-ARr = 0.220^2 / 8708e-6;
-delta_a_f = rad2deg( CL_vals ./ (pi*ARf));
-delta_a_r = rad2deg( CL_vals ./ (pi*ARr));
-
 
 % Prepare and plot CL figure
 fig_cl = figure('Name','fig_eppler874_cl','Units','inches','Position',[1 1 6 4]);
@@ -61,15 +55,157 @@ set(gca,'FontName','Times New Roman');
 % % Prepare for export as PDF
 % set(fig_cd,'PaperUnits','inches','PaperPosition',[0 0 6 4],'PaperSize',[6 4]);
 
+%temporary commented out
+% exportgraphics(fig_cl, 'fig_eppler874_cl.pdf', ...
+%     'ContentType', 'vector', ...
+%     'BackgroundColor', 'none');
+% exportgraphics(fig_cd, 'fig_eppler874_cd.pdf', ...
+%     'ContentType', 'vector', ...
+%     'BackgroundColor', 'none');
 
-exportgraphics(fig_cl, 'fig_eppler874_cl.pdf', ...
+%% WLICZENIE ASPECT RATIO do CL CD
+a = alpha_vals';
+l = CL_vals';
+d = CD_vals';
+%%
+%augumentation of CL CD with custom points to better fit the polynomials 
+alpha_vals = [-10 a 11 12 13 14 15]';
+CL_vals = [-.55 l 0.655 0.6 0.55 0.51 0.48]';
+CD_vals = [.12 d 0.12 0.16 0.20 0.28 0.32]';
+
+ARf = 0.204^2 / 8080e-6;
+ARr = 0.220^2 / 8708e-6;
+
+% Induced angle of attack [deg]
+delta_a_f = rad2deg( CL_vals ./ (pi*ARf));
+delta_a_r = rad2deg( CL_vals ./ (pi*ARr));
+% Corrected geometric angle of attack [deg]
+alpha_f = alpha_vals + delta_a_f;
+alpha_r = alpha_vals + delta_a_r;
+
+% Induced drag coefficient
+delta_CD_f = CL_vals.^2 ./ (pi * ARf);
+delta_CD_r = CL_vals.^2 ./ (pi * ARr);
+% Corrected drag coefficient
+CD_f = CD_vals + delta_CD_f;
+CD_r = CD_vals + delta_CD_r;
+
+% Plot the corrected values over previous figures 
+figure(fig_cl);
+hold on;
+plot(alpha_f, CL_vals, 'b-', 'LineWidth', 1.2);
+plot(alpha_r, CL_vals, 'k--', 'LineWidth', 1.2);
+legend('2D profile', 'Front hydrofoil', 'Rear hydrofoil', ...
+       'Location', 'best');
+hold off;
+
+figure(fig_cd);
+hold on;
+plot(alpha_vals, CD_f, 'b-', 'LineWidth', 1.2);
+plot(alpha_vals, CD_r, 'k--', 'LineWidth', 1.2);
+legend('2D profile', 'Front hydrofoil', 'Rear hydrofoil', ...
+       'Location', 'best');
+hold off;
+
+%% Try to approximate the characteristics with polynomials
+ft_CL = fittype( ...
+    'a + b*x + c*x^2 + d*x^3 + e*x^5 + f*x^7', ...
+    'independent','x', ...
+    'coefficients',{'a','b','c','d','e','f'});
+ft_CD = fittype( ...
+    'a + b*x + c*x^2 + d*x^3 + e*x^4 + f*x^5', ...
+    'independent','x', ...
+    'coefficients',{'a','b','c','d','e','f'});
+
+fCL_f = fit(alpha_f, CL_vals, ft_CL, 'StartPoint', zeros(1,6));
+fCL_r = fit(alpha_r, CL_vals, ft_CL, 'StartPoint', zeros(1,6));
+
+fCD_f = fit(alpha_vals, CD_f, ft_CD, 'StartPoint', zeros(1,6));
+fCD_r = fit(alpha_vals, CD_r, ft_CD, 'StartPoint', zeros(1,6));
+
+% Typically when boat is leveled the actuation angle is only in the range
+% -6/+12 degrees
+alpha_range_standard = -6:0.1:12;
+% But the boat is pitching by the phi so the range should be extended to 
+% broader range
+alpha_range_extended = -6-6:0.1:12+6;
+alpha_fit = alpha_range_extended;
+
+figc_cl = figure('Name','hydrofoil_corrected_cl','Units','inches','Position',[1 1 5 3]);
+% plot(alpha_vals, CL_vals, 'g.', 'MarkerSize', 10); hold on;
+plot(a, l, '.', 'MarkerSize', 8, 'Color', [0.5 1 0.5]); hold on;
+xlabel('\alpha (deg)', 'FontName', 'Times New Roman'); 
+ylabel('C_L', 'FontName', 'Times New Roman');
+set(gca,'FontName','Times New Roman');grid on;
+plot(alpha_fit, fCL_f(alpha_fit), '-', 'LineWidth', 1);
+plot(alpha_fit, fCL_r(alpha_fit), '-', 'LineWidth', 1);
+legend('XFOIL 2D data', ...
+       'Finite-span corrected front approximation', ...
+       'Finite-span corrected rear approximation', ...
+       'Location','best');
+% plot(alpha_f, CL_vals, '.')
+xlim([-6-4 12+2])
+
+figc_cd = figure('Name','fig_eppler874_cd','Units','inches','Position',[7 1 5 3]);
+% plot(alpha_vals, CD_vals, 'r.', 'MarkerSize', 10); hold on;
+plot(a, d, '.', 'MarkerSize', 8, 'Color', [1 0.5 0.5]); hold on;
+xlabel('\alpha (deg)', 'FontName', 'Times New Roman'); 
+ylabel('C_D', 'FontName', 'Times New Roman');
+set(gca,'FontName','Times New Roman');grid on;
+plot(alpha_fit, fCD_f(alpha_fit), '-', 'LineWidth', 1);
+plot(alpha_fit, fCD_r(alpha_fit), '-', 'LineWidth', 1);
+legend('XFOIL 2D data', ...
+       'Finite-span corrected front approximation', ...
+       'Finite-span corrected rear approximation', ...
+       'Location','best');
+% plot(alpha_vals, CD_f, '.')
+xlim([-6-4 12+2])
+ylim([0 .2])
+
+%temporary commented out
+exportgraphics(figc_cl, 'hydrofoil_corrected_cl.pdf', ...
     'ContentType', 'vector', ...
     'BackgroundColor', 'none');
-exportgraphics(fig_cd, 'fig_eppler874_cd.pdf', ...
+exportgraphics(figc_cd, 'hydrofoil_corrected_cd.pdf', ...
     'ContentType', 'vector', ...
     'BackgroundColor', 'none');
+%% SANITY CHECKS
+figure;
+plot(fCD_f(alpha_fit), fCL_f(alpha_fit), '-', 'LineWidth', 1.1); hold on;
+plot(fCD_r(alpha_fit), fCL_r(alpha_fit), '--', 'LineWidth', 1.1);
+xlabel('C_D');
+ylabel('C_L');
+grid on;
+set(gca,'FontName','Times New Roman');
+legend('Front hydrofoil', 'Rear hydrofoil', ...
+       'Location','best');
+figure;
+plot(alpha_fit, fCL_f(alpha_fit)./fCD_f(alpha_fit), '-', 'LineWidth', 1); hold on;
+plot(alpha_fit, fCL_r(alpha_fit)./fCD_r(alpha_fit), '-', 'LineWidth', 1);
+xlabel('alpha');
+ylabel('C_L/C_D');
+grid on;
+set(gca,'FontName','Times New Roman');
+legend('Front hydrofoil', 'Rear hydrofoil', ...
+       'Location','best');
+
+%% SAVE THE LUTS TO THE FILE
+
+LUT_alpha_F = alpha_range_extended(:);
+LUT_alpha_R = alpha_range_extended(:);
+
+LUT_CL_F = fCL_f(LUT_alpha_F);
+LUT_CL_R = fCL_r(LUT_alpha_R);
+
+LUT_CD_F = fCD_f(LUT_alpha_F);
+LUT_CD_R = fCD_r(LUT_alpha_R);
+
+save('eppler874.mat', ...
+    'LUT_alpha_F', 'LUT_CL_F', 'LUT_CD_F', ...
+    'LUT_alpha_R', 'LUT_CL_R', 'LUT_CD_R');
 
 return
+%% OLD STUFF:
 %% http://airfoiltools.com/polar/details?polar=xf-e874-il-1000000
 % [ alpha , CL , CD , CDp , CM , Top_Xtr , Bot_Xtr ]
 data = [
