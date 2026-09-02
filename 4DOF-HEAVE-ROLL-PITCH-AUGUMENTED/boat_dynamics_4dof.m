@@ -189,7 +189,7 @@ function [ xdot, info ] = boat_dynamics_4dof(x, u, w, params) %#codegen
     e_lift_FL_B = cross(e_span_B, v_FL_xz_B);
     e_lift_FR_B = cross(e_span_B, v_FR_xz_B);
     e_lift_R_B  = cross(e_span_B, v_R_xz_B);
-    
+
     e_lift_FL_B = e_lift_FL_B / norm(e_lift_FL_B);
     e_lift_FR_B = e_lift_FR_B / norm(e_lift_FR_B);
     e_lift_R_B  = e_lift_R_B  / norm(e_lift_R_B);
@@ -248,7 +248,7 @@ function [ xdot, info ] = boat_dynamics_4dof(x, u, w, params) %#codegen
         params.front_struts.CD, ...
         0.002, ...
         ...
-        xWdot, zW, R_BW, R_WB, rho);
+        v_COM_B, omega_B, zW, R_BW, rho);
 
     [F_strut_FR_B, tau_strut_FR_B] = strut_drag(...
         r_FR_B, ...
@@ -257,7 +257,7 @@ function [ xdot, info ] = boat_dynamics_4dof(x, u, w, params) %#codegen
         params.front_struts.CD, ...
         0.002, ...
         ...
-        xWdot, zW, R_BW, R_WB, rho);
+        v_COM_B, omega_B, zW, R_BW, rho);
 
     [F_strut_R_B, tau_strut_R_B] = strut_drag(...
         r_R_B, ...
@@ -266,8 +266,7 @@ function [ xdot, info ] = boat_dynamics_4dof(x, u, w, params) %#codegen
         params.front_struts.CD, ...
         0.002, ...
         ...
-        xWdot, zW, R_BW, R_WB, rho);
-
+        v_COM_B, omega_B, zW, R_BW, rho);
 
     %%  Torques via cross products in body frame
     tau_FL_B = cross(r_FL_B, F_FL_B);
@@ -391,49 +390,66 @@ function [ xdot, info ] = boat_dynamics_4dof(x, u, w, params) %#codegen
     ];
 end
 
-function [F_strut_B, tau_strut_B] = strut_drag(...
+function [F_strut_B, tau_strut_B] = strut_drag( ...
     r_bottom_position_B, ...
     strip_distances_m, ...
     strip_chords_m, ...
     strip_CDs, ...
     strip_dz, ...
     ...
-    xWdot, ...
+    v_COM_B, ...
+    omega_B, ...
     zW, ...
-    ...
     R_BW, ...
-    R_WB, ...
     rho)
-    
-    F_strut_B = zeros(3,1);
+
+    F_strut_B   = zeros(3,1);
     tau_strut_B = zeros(3,1);
 
-    e_drag_W = [-1; 0; 0];  % oppsite to the xdot_W? approximately yes
-    e_drag_B = R_WB * e_drag_W;
-
+    V_min = 1e-6;
 
     for i = 1:length(strip_distances_m)
-        % Position of each strip centre in body frame
-        r_i_B = r_bottom_position_B - [0; 0; strip_distances_m(i)];
 
-        % Position in world frame
+        % Position of strip centre
+
+        % Distances are measured upwards from the bottom of the strut.
+        % In the NED body frame, upwards corresponds to -z_B.
+        r_i_B = r_bottom_position_B ...
+              - [0; 0; strip_distances_m(i)];
+
+        % Only the z-coordinate is needed to determine immersion.
         p_i_W = [0; 0; zW] + R_BW * r_i_B;
 
-        % NED: z > 0 means below water surface
-        if p_i_W(3) > 0
-            % Surface area
-            S_i = strip_chords_m(i) * strip_dz;
+        % Submerged strip
 
-            % Drag
-            D_i = 0.5 * rho * xWdot^2 ...
-                * strip_CDs(i) ...
-                * S_i;
-
-            F_i_B = D_i * e_drag_B;
-
-            F_strut_B = F_strut_B + F_i_B;
-            tau_strut_B = tau_strut_B ...
-                        + cross(r_i_B, F_i_B);
+        % In the NED world frame, z_W > 0 is below the water surface.
+        if p_i_W(3) <= 0
+            continue;
         end
+
+        % Local strip velocity
+
+        % Velocity of the strip relative to stationary water.
+        v_i_B = v_COM_B + cross(omega_B, r_i_B);
+        V_i = norm(v_i_B);
+        if V_i <= V_min
+            continue;
+        end
+
+        % Section drag
+        S_i = strip_chords_m(i) * strip_dz;
+
+        D_i = 0.5 * rho * V_i^2 ...
+            * strip_CDs(i) * S_i;
+
+        % Drag acts opposite to the local velocity through the water.
+        e_drag_i_B = -v_i_B / V_i;
+        F_i_B = D_i * e_drag_i_B;
+
+        % Accumulate force and moment about COM
+        F_strut_B = F_strut_B + F_i_B;
+
+        tau_strut_B = tau_strut_B ...
+                    + cross(r_i_B, F_i_B);
     end
 end

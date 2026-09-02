@@ -273,14 +273,15 @@ p = paths(k);
 info = parquetinfo(p);
 T = parquetread(p);
 
-% % biggest amplitude
-% TSTART = 2.1;%third dataset 
-% % TSTART=4.8; % first dataset k=1
-% analyzed_biggest_segments_LEFT = analyze_square(T, 'LEFT', N, TSTART);
-% % mid amplitude
-% analyzed_mid_segments_LEFT = analyze_square(T, 'LEFT', N, TSTART+1*(N*1.0+3.0));
-% % lowest amplitdue
-% analyzed_lowest_segments_LEFT = analyze_square(T, 'LEFT', N, TSTART+2*(N*1.0+3.0));
+% %% biggest amplitude
+TSTART = 2.1;%third dataset 
+% TSTART=4.8; % first dataset k=1
+analyzed_biggest_segments_LEFT = analyze_square(T, 'LEFT', N, TSTART);
+% %% mid amplitude
+analyzed_mid_segments_LEFT = analyze_square(T, 'LEFT', N, TSTART+1*(N*1.0+3.0));
+% %% lowest amplitdue
+analyzed_lowest_segments_LEFT = analyze_square(T, 'LEFT', N, TSTART+2*(N*1.0+3.0));
+% %%
 
 TSTART = 380.1;%third dataset 
 % TSTART=76.8; % first dataset k=1
@@ -298,12 +299,6 @@ analyzed_biggest_segments_REAR = analyze_square(T, 'REAR', N, TSTART);
 analyzed_mid_segments_REAR = analyze_square(T, 'REAR', N, TSTART+1*(N*1.0+3.0));
 % lowest amplitdue
 analyzed_lowest_segments_REAR = analyze_square(T, 'REAR', N, TSTART+2*(N*1.0+3.0));
-
-% datasets = {
-%     analyzed_biggest_segments, 'Big amplitude';
-%     analyzed_mid_segments,     'Mid amplitude';
-%     analyzed_lowest_segments,  'Low amplitude'
-% };
 
 datasets = {
     analyzed_biggest_segments_LEFT,  analyzed_biggest_segments_RIGHT,  analyzed_biggest_segments_REAR,  'Big';
@@ -504,80 +499,334 @@ function segments = analyze_square(T, ACTUATOR, N, tnstart)
     
         % Sampling time
         Ts = median(diff(t));
-        % Identification data
-        idx0 = (t - t(1)) <= 0.4;
+    
+        % ---------------------------------------------------------
+        % Initial operating point
+        % First 0.4 s; step occurs around 0.5 s
+        % ---------------------------------------------------------
+        t_rel = t - t(1);
+    
+        idx0 = t_rel <= 0.4;
+    
         y0 = mean(y(idx0));
         u0 = mean(u(idx0));
+    
+        % Identification data - useful later
         data = iddata(y - y0, u - u0, Ts);
-        % data = iddata(y-y(1), u-u(1), Ts);
     
-        % Estimate P1 and P1D
-        opts = procestOptions;
-        opts.EstimateCovariance = true;
-        opts.InputInterSample = 'zoh';
-        opts.InitialCondition = 'zero';
-        opts.Focus = 'simulation';
-    
-        mdl_P1  = procest(data, 'P1', opts);
-        mdl_P1D = procest(data, 'P1D', opts);
-    
-        % Store models
-        segments(k).dynamics.P1.model  = mdl_P1;
-        segments(k).dynamics.P1D.model = mdl_P1D;
     
         % ---------------------------------------------------------
-        % P1
-        % G(s) = Kp / (1 + Tp1*s)
+        % Detect input step u
         % ---------------------------------------------------------
-        p = getpvec(mdl_P1, 'free');
-        C = getcov(mdl_P1, 'value', 'free');
-        sd = sqrt(diag(C));
+        [~, iu] = max(abs(diff(u)));
     
-        segments(k).dynamics.P1.Kp  = mdl_P1.Kp;
-        segments(k).dynamics.P1.Tp1 = mdl_P1.Tp1;
+        % First sample after step
+        iu = iu + 1;
+        t_step_u = t(iu);
     
-        % 95% confidence intervals
-        ci95 = [p - 1.96*sd, p + 1.96*sd];
-    
-        segments(k).dynamics.P1.parameters = p;
-        segments(k).dynamics.P1.std        = sd;
-        segments(k).dynamics.P1.ci95       = ci95;
-    
-        % Fit statistics
-        segments(k).dynamics.P1.fit  = mdl_P1.Report.Fit.FitPercent;
-        segments(k).dynamics.P1.AICc = mdl_P1.Report.Fit.AICc;
-        segments(k).dynamics.P1.BIC  = mdl_P1.Report.Fit.BIC;
     
         % ---------------------------------------------------------
-        % P1D
-        % G(s) = Kp / (1 + Tp1*s) * exp(-Td*s)
+        % Estimate final output value
+        % Last 20% of segment
         % ---------------------------------------------------------
-        p = getpvec(mdl_P1D, 'free');
-        C = getcov(mdl_P1D, 'value', 'free');
-        sd = sqrt(diag(C));
+        idx_end = t_rel >= 0.8 * t_rel(end);
     
-        segments(k).dynamics.P1D.Kp  = mdl_P1D.Kp;
-        segments(k).dynamics.P1D.Tp1 = mdl_P1D.Tp1;
-        segments(k).dynamics.P1D.Td  = mdl_P1D.Td;
+        y_final = mean(y(idx_end));
     
-        % 95% confidence intervals
-        ci95 = [p - 1.96*sd, p + 1.96*sd];
+        delta_y = y_final - y0;
     
-        segments(k).dynamics.P1D.parameters = p;
-        segments(k).dynamics.P1D.std        = sd;
-        segments(k).dynamics.P1D.ci95       = ci95;
     
-        % Fit statistics
-        segments(k).dynamics.P1D.fit  = mdl_P1D.Report.Fit.FitPercent;
-        segments(k).dynamics.P1D.AICc = mdl_P1D.Report.Fit.AICc;
-        segments(k).dynamics.P1D.BIC  = mdl_P1D.Report.Fit.BIC;
+        % ---------------------------------------------------------
+        % Normalize response
+        %
+        % Works for BOTH directions:
+        %
+        % UP:   y increases -> r: 0 -> 1
+        % DOWN: y decreases -> r: 0 -> 1
+        % ---------------------------------------------------------
+        r = (y - y0) / delta_y;
     
-        % % % PLOT
-        % % mdl_P1.Name  = 'P1';
-        % % mdl_P1D.Name = 'P1D';
-        % % figure;
-        % % compare(data, mdl_P1, mdl_P1D, compareOptions('InitialCondition','z'));
-        % % title(sprintf('Segment %d', k));
+    
+        % Only search after input step
+        idx_after = find(t >= t_step_u);
+    
+        t_after = t(idx_after);
+        r_after = r(idx_after);
+    
+    
+        % ---------------------------------------------------------
+        % Exact P1 response levels
+        % ---------------------------------------------------------
+        p63 = 1 - exp(-1);     % 0.632120...
+        p86 = 1 - exp(-2);     % 0.864665...
+        p95 = 1 - exp(-3);     % 0.950213...
+    
+    
+        % =========================================================
+        % Find t63
+        % =========================================================
+        i63 = find(r_after >= p63, 1, 'first');
+    
+        if ~isempty(i63)
+    
+            if i63 > 1
+                % Linear interpolation between samples
+                t1 = t_after(i63-1);
+                t2 = t_after(i63);
+    
+                r1 = r_after(i63-1);
+                r2 = r_after(i63);
+    
+                t63 = t1 + ...
+                    (p63-r1)/(r2-r1) * (t2-t1);
+            else
+                t63 = t_after(i63);
+            end
+    
+        else
+            t63 = NaN;
+        end
+    
+    
+        % =========================================================
+        % Find t86
+        % =========================================================
+        i86 = find(r_after >= p86, 1, 'first');
+    
+        if ~isempty(i86)
+    
+            if i86 > 1
+                t1 = t_after(i86-1);
+                t2 = t_after(i86);
+    
+                r1 = r_after(i86-1);
+                r2 = r_after(i86);
+    
+                t86 = t1 + ...
+                    (p86-r1)/(r2-r1) * (t2-t1);
+            else
+                t86 = t_after(i86);
+            end
+    
+        else
+            t86 = NaN;
+        end
+    
+    
+        % =========================================================
+        % Find t95
+        % =========================================================
+        i95 = find(r_after >= p95, 1, 'first');
+    
+        if ~isempty(i95)
+    
+            if i95 > 1
+                t1 = t_after(i95-1);
+                t2 = t_after(i95);
+    
+                r1 = r_after(i95-1);
+                r2 = r_after(i95);
+    
+                t95 = t1 + ...
+                    (p95-r1)/(r2-r1) * (t2-t1);
+            else
+                t95 = t_after(i95);
+            end
+    
+        else
+            t95 = NaN;
+        end
+    
+    
+        % =========================================================
+        % Estimate Tp = tau
+        % =========================================================
+        if ~isnan(t63) && ~isnan(t86) && ~isnan(t95)
+    
+            % 63 -> 86 corresponds to one tau
+            tau_63_86 = t86 - t63;
+    
+            % 86 -> 95 corresponds to one tau
+            tau_86_95 = t95 - t86;
+    
+            % 63 -> 95 corresponds to two tau
+            tau_63_95 = (t95 - t63) / 2;
+    
+            % Final tau estimate
+            tau_values = [
+                tau_63_86
+                tau_86_95
+                tau_63_95
+            ];
+    
+            Tp_manual = mean(tau_values);
+    
+    
+            % =====================================================
+            % Extrapolate all three points back to beginning
+            % of P1 dynamics
+            % =====================================================
+    
+            t_start_from_63 = t63 - 1*Tp_manual;
+            t_start_from_86 = t86 - 2*Tp_manual;
+            t_start_from_95 = t95 - 3*Tp_manual;
+    
+            t_start_values = [
+                t_start_from_63
+                t_start_from_86
+                t_start_from_95
+            ];
+    
+            % Estimated beginning of P1 response
+            t_dynamic_start = mean(t_start_values);
+    
+            % Transport delay u -> y
+            Td_manual = t_dynamic_start - t_step_u;
+    
+        else
+    
+            tau_63_86 = NaN;
+            tau_86_95 = NaN;
+            tau_63_95 = NaN;
+    
+            Tp_manual = NaN;
+    
+            t_start_from_63 = NaN;
+            t_start_from_86 = NaN;
+            t_start_from_95 = NaN;
+    
+            t_dynamic_start = NaN;
+            Td_manual = NaN;
+    
+        end
+    
+    
+        % =========================================================
+        % Store results
+        % =========================================================
+    
+        segments(k).manual_P1D.Tp = Tp_manual;
+        segments(k).manual_P1D.Td = Td_manual;
+    
+        % Individual tau estimates
+        segments(k).manual_P1D.tau_63_86 = tau_63_86;
+        segments(k).manual_P1D.tau_86_95 = tau_86_95;
+        segments(k).manual_P1D.tau_63_95 = tau_63_95;
+    
+        % Crossing times
+        segments(k).manual_P1D.t63 = t63;
+        segments(k).manual_P1D.t86 = t86;
+        segments(k).manual_P1D.t95 = t95;
+    
+        % Extrapolated dynamic start
+        segments(k).manual_P1D.t_start_from_63 = ...
+            t_start_from_63;
+    
+        segments(k).manual_P1D.t_start_from_86 = ...
+            t_start_from_86;
+    
+        segments(k).manual_P1D.t_start_from_95 = ...
+            t_start_from_95;
+    
+        segments(k).manual_P1D.t_dynamic_start = ...
+            t_dynamic_start;
+    
+        segments(k).manual_P1D.t_step_u = t_step_u;
+    
+        % Diagnostic
+        segments(k).manual_P1D.y0 = y0;
+        segments(k).manual_P1D.y_final = y_final;
+    
+    
+        % % =========================================================
+        % % Diagnostic plot
+        % % =========================================================
+        % figure('Name', sprintf('%s segment %d', ACTUATOR, k));
+        % 
+        % tiledlayout(2,1, ...
+        %     'TileSpacing','compact', ...
+        %     'Padding','compact');
+        % 
+        % 
+        % % ---------------------------------------------------------
+        % % Input u
+        % % ---------------------------------------------------------
+        % nexttile;
+        % 
+        % plot(t, u, 'LineWidth',1.2);
+        % hold on;
+        % grid on;
+        % 
+        % xline(t_step_u, '--', 'u step');
+        % 
+        % if ~isnan(t_dynamic_start)
+        %     xline(t_dynamic_start, '--', ...
+        %         sprintf('P1 start, Td = %.2f ms', ...
+        %         Td_manual*1000));
+        % end
+        % 
+        % ylabel('u');
+        % 
+        % title(sprintf( ...
+        %     '%s - segment %d | Tp = %.2f ms | Td = %.2f ms', ...
+        %     ACTUATOR, k, ...
+        %     Tp_manual*1000, ...
+        %     Td_manual*1000));
+        % 
+        % 
+        % % ---------------------------------------------------------
+        % % Normalized output
+        % % ---------------------------------------------------------
+        % nexttile;
+        % 
+        % plot(t, r, 'LineWidth',1.2);
+        % hold on;
+        % grid on;
+        % 
+        % yline(p63, ':', '63.2% = 1\tau');
+        % yline(p86, ':', '86.5% = 2\tau');
+        % yline(p95, ':', '95.0% = 3\tau');
+        % 
+        % xline(t_step_u, '--', 'u step');
+        % 
+        % 
+        % if ~isnan(t63)
+        %     xline(t63, ':', 't_{63}');
+        % end
+        % 
+        % if ~isnan(t86)
+        %     xline(t86, ':', 't_{86}');
+        % end
+        % 
+        % if ~isnan(t95)
+        %     xline(t95, ':', 't_{95}');
+        % end
+        % 
+        % 
+        % % The three extrapolated P1 start estimates
+        % if ~isnan(t_start_from_63)
+        % 
+        %     xline(t_start_from_63, '--', ...
+        %         'start from 63%');
+        % 
+        %     xline(t_start_from_86, '--', ...
+        %         'start from 86%');
+        % 
+        %     xline(t_start_from_95, '--', ...
+        %         'start from 95%');
+        % 
+        %     % Their mean
+        %     xline(t_dynamic_start, '-', ...
+        %         sprintf('mean start = %.3f s', ...
+        %         t_dynamic_start));
+        % end
+        % 
+        % 
+        % xlabel('Time [s]');
+        % ylabel('Normalized response');
+        % 
+        % ylim([-0.1 1.15]);
+    
     end
 end
 
@@ -588,8 +837,7 @@ end
 
 
 
-
-
+%% DAJ MI TUTAJ FUNKCJE KTORA MI ZWIZUALIZUJE 
 
 
 
@@ -645,129 +893,543 @@ end
 
 
 return
-%% DELAYS ODPAL TO NA KONCU DOPIERO.. 
-all_delays = [];
-
-for a = 1:3
-    for s = 1:3
-        S = datasets{a,s};
-        all_delays = [all_delays, [S.delay]];
-    end
-end
-
-all_delays_ms = all_delays * 1000;
-
-figure;
-histogram(all_delays_ms);
-grid on;
-xlabel('Delay c \rightarrow u [ms]');
-ylabel('Count');
-title('Controller \rightarrow actuator delay');
-
-fprintf('N = %d\n', numel(all_delays_ms));
-fprintf('Mean   = %.2f ms\n', mean(all_delays_ms));
-fprintf('Std    = %.2f ms\n', std(all_delays_ms));
-fprintf('Median = %.2f ms\n', median(all_delays_ms));
-fprintf('Min    = %.2f ms\n', min(all_delays_ms));
-fprintf('Max    = %.2f ms\n', max(all_delays_ms));
-
-%
-all_Td = [];
-
-for a = 1:3
-    for s = 1:3
-        S = datasets{a,s};
-        all_Td = [all_Td, arrayfun(@(x) x.dynamics.P1D.Td, S)];
-    end
-end
-
-all_Td_ms = all_Td * 1000;
-
-figure;
-histogram(all_Td_ms);
-grid on;
-xlabel('P1D transport delay T_d [ms]');
-ylabel('Count');
-title('P1D transport delay');
-
-fprintf('P1D Td:\n');
-fprintf('N      = %d\n', numel(all_Td_ms));
-fprintf('Mean   = %.2f ms\n', mean(all_Td_ms));
-fprintf('Std    = %.2f ms\n', std(all_Td_ms));
-fprintf('Median = %.2f ms\n', median(all_Td_ms));
-fprintf('Min    = %.2f ms\n', min(all_Td_ms));
-fprintf('Max    = %.2f ms\n', max(all_Td_ms));
-
-%
-all_total_delay = [];
-
-for a = 1:3
-    for s = 1:3
-        S = datasets{a,s};
-
-        delay_cu = [S.delay];
-        delay_p1d = arrayfun(@(x) x.dynamics.P1D.Td, S);
-
-        total_delay = delay_cu + delay_p1d;
-
-        all_total_delay = [all_total_delay, total_delay];
-    end
-end
-
-all_total_delay_ms = all_total_delay * 1000;
-
-figure;
-histogram(all_total_delay_ms);
-grid on;
-xlabel('Total delay: c \rightarrow u + P1D T_d [ms]');
-ylabel('Count');
-title('Total controller \rightarrow plant delay');
-
-fprintf('Total delay:\n');
-fprintf('N      = %d\n', numel(all_total_delay_ms));
-fprintf('Mean   = %.2f ms\n', mean(all_total_delay_ms));
-fprintf('Std    = %.2f ms\n', std(all_total_delay_ms));
-fprintf('Median = %.2f ms\n', median(all_total_delay_ms));
-fprintf('Min    = %.2f ms\n', min(all_total_delay_ms));
-fprintf('Max    = %.2f ms\n', max(all_total_delay_ms));
-
+%% DELAYS - ODPAL NA KONCU
 
 all_cu = [];
-all_Td = [];
+all_Td_manual = [];
+all_total = [];
 
 for a = 1:3
     for s = 1:3
+
         S = datasets{a,s};
 
-        all_cu = [all_cu, [S.delay]];
-        all_Td = [all_Td, arrayfun(@(x) x.dynamics.P1D.Td, S)];
+        % Controller -> actuator command delay
+        delay_cu = [S.delay];
+
+        % Manually estimated transport delay u -> y
+        delay_Td = arrayfun(@(x) x.manual_P1D.Td, S);
+
+        % Total delay c -> beginning of P1 dynamics
+        delay_total = delay_cu + delay_Td;
+
+        all_cu        = [all_cu, delay_cu];
+        all_Td_manual = [all_Td_manual, delay_Td];
+        all_total     = [all_total, delay_total];
+
     end
 end
 
-all_cu = all_cu * 1000;
-all_Td = all_Td * 1000;
-all_total = all_cu + all_Td;
 
-figure;
-tiledlayout(3,1, 'TileSpacing','compact');
+% %% Convert to ms
+all_cu_ms        = all_cu * 1000;
+all_Td_manual_ms = all_Td_manual * 1000;
+all_total_ms     = all_total * 1000;
 
+
+% %% Remove NaNs
+valid_cu = ~isnan(all_cu_ms);
+valid_Td = ~isnan(all_Td_manual_ms);
+valid_total = ~isnan(all_total_ms);
+
+cu = all_cu_ms(valid_cu);
+Td = all_Td_manual_ms(valid_Td);
+total = all_total_ms(valid_total);
+
+
+% %% =========================================================
+% Statistics
+% =========================================================
+
+fprintf('\n=================================================\n');
+fprintf('DELAYS\n');
+fprintf('=================================================\n');
+
+fprintf('\nController -> actuator (c -> u):\n');
+fprintf('N      = %d\n', numel(cu));
+fprintf('Mean   = %.2f ms\n', mean(cu));
+fprintf('Std    = %.2f ms\n', std(cu));
+fprintf('Median = %.2f ms\n', median(cu));
+fprintf('Min    = %.2f ms\n', min(cu));
+fprintf('Max    = %.2f ms\n', max(cu));
+
+fprintf('\nManual transport delay (u -> y):\n');
+fprintf('N      = %d\n', numel(Td));
+fprintf('Mean   = %.2f ms\n', mean(Td));
+fprintf('Std    = %.2f ms\n', std(Td));
+fprintf('Median = %.2f ms\n', median(Td));
+fprintf('Min    = %.2f ms\n', min(Td));
+fprintf('Max    = %.2f ms\n', max(Td));
+
+fprintf('\nTOTAL delay (c -> u + manual Td):\n');
+fprintf('N      = %d\n', numel(total));
+fprintf('Mean   = %.2f ms\n', mean(total));
+fprintf('Std    = %.2f ms\n', std(total));
+fprintf('Median = %.2f ms\n', median(total));
+fprintf('Min    = %.2f ms\n', min(total));
+fprintf('Max    = %.2f ms\n', max(total));
+
+
+% %% =========================================================
+% Main comparison figure
+% =========================================================
+
+figure('Name','Delay comparison');
+
+tl = tiledlayout(3,1, ...
+    'TileSpacing','compact', ...
+    'Padding','compact');
+
+title(tl, 'Delay decomposition');
+
+
+% c -> u
 nexttile;
-histogram(all_cu);
+
+histogram(cu, 'BinWidth',2);
 grid on;
-xlabel('c \rightarrow u [ms]');
+
+xlabel('Delay c \rightarrow u [ms]');
 ylabel('Count');
-title('Communication / controller delay');
+title(sprintf( ...
+    'Controller \\rightarrow actuator: mean %.2f ms, std %.2f ms', ...
+    mean(cu), std(cu)));
 
+
+% manual u -> y
 nexttile;
-histogram(all_Td);
+
+histogram(Td, 'BinWidth',2);
 grid on;
-xlabel('P1D T_d [ms]');
+
+xlabel('Manual transport delay T_d [ms]');
 ylabel('Count');
-title('Identified plant transport delay');
+title(sprintf( ...
+    'Manual u \\rightarrow y delay: mean %.2f ms, std %.2f ms', ...
+    mean(Td), std(Td)));
 
+
+% total
 nexttile;
-histogram(all_total);
+
+histogram(total, 'BinWidth',2);
 grid on;
+
 xlabel('Total delay [ms]');
 ylabel('Count');
-title('c \rightarrow u + P1D T_d');
+title(sprintf( ...
+    'Total c \\rightarrow y delay: mean %.2f ms, std %.2f ms', ...
+    mean(total), std(total)));
+
+% %% Delay per measurement
+
+figure('Name','Delays per segment');
+
+plot(all_cu_ms, 'o-');
+hold on;
+
+plot(all_Td_manual_ms, 'o-');
+plot(all_total_ms, 'o-');
+
+grid on;
+
+xlabel('Measurement');
+ylabel('Delay [ms]');
+
+legend( ...
+    'c \rightarrow u', ...
+    'manual T_d', ...
+    'total', ...
+    'Location','best');
+
+title('Delay for each segment');
+
+
+%%
+plot_manual_P1D(datasets)
+%%
+function plot_manual_P1D(datasets)
+
+    Tp_all = [];
+    Td_all = [];
+
+    tau_63_86_all = [];
+    tau_86_95_all = [];
+    tau_63_95_all = [];
+
+    start63_all = [];
+    start86_all = [];
+    start95_all = [];
+
+    % =========================================================
+    % Collect data
+    % =========================================================
+    for a = 1:3
+        for s = 1:3
+
+            S = datasets{a,s};
+
+            Tp = arrayfun(@(x) x.manual_P1D.Tp, S);
+            Td = arrayfun(@(x) x.manual_P1D.Td, S);
+
+            tau1 = arrayfun(@(x) x.manual_P1D.tau_63_86, S);
+            tau2 = arrayfun(@(x) x.manual_P1D.tau_86_95, S);
+            tau3 = arrayfun(@(x) x.manual_P1D.tau_63_95, S);
+
+            st1 = arrayfun(@(x) x.manual_P1D.t_start_from_63, S);
+            st2 = arrayfun(@(x) x.manual_P1D.t_start_from_86, S);
+            st3 = arrayfun(@(x) x.manual_P1D.t_start_from_95, S);
+
+            Tp_all = [Tp_all Tp];
+            Td_all = [Td_all Td];
+
+            tau_63_86_all = [tau_63_86_all tau1];
+            tau_86_95_all = [tau_86_95_all tau2];
+            tau_63_95_all = [tau_63_95_all tau3];
+
+            start63_all = [start63_all st1];
+            start86_all = [start86_all st2];
+            start95_all = [start95_all st3];
+
+        end
+    end
+
+
+    % =========================================================
+    % Convert to ms where appropriate
+    % =========================================================
+    Tp_ms = Tp_all * 1000;
+    Td_ms = Td_all * 1000;
+
+    tau1_ms = tau_63_86_all * 1000;
+    tau2_ms = tau_86_95_all * 1000;
+    tau3_ms = tau_63_95_all * 1000;
+
+
+    % =========================================================
+    % Remove NaNs for statistics
+    % =========================================================
+    Tp_valid = Tp_ms(~isnan(Tp_ms));
+    Td_valid = Td_ms(~isnan(Td_ms));
+
+    tau1_valid = tau1_ms(~isnan(tau1_ms));
+    tau2_valid = tau2_ms(~isnan(tau2_ms));
+    tau3_valid = tau3_ms(~isnan(tau3_ms));
+
+
+    % =========================================================
+    % Statistics
+    % =========================================================
+    fprintf('\n=================================================\n');
+    fprintf('MANUAL P1D ESTIMATION\n');
+    fprintf('=================================================\n');
+
+    fprintf('\nTp:\n');
+    fprintf('N      = %d\n', numel(Tp_valid));
+    fprintf('Mean   = %.2f ms\n', mean(Tp_valid));
+    fprintf('Std    = %.2f ms\n', std(Tp_valid));
+    fprintf('Median = %.2f ms\n', median(Tp_valid));
+    fprintf('Min    = %.2f ms\n', min(Tp_valid));
+    fprintf('Max    = %.2f ms\n', max(Tp_valid));
+
+    fprintf('\nTd:\n');
+    fprintf('N      = %d\n', numel(Td_valid));
+    fprintf('Mean   = %.2f ms\n', mean(Td_valid));
+    fprintf('Std    = %.2f ms\n', std(Td_valid));
+    fprintf('Median = %.2f ms\n', median(Td_valid));
+    fprintf('Min    = %.2f ms\n', min(Td_valid));
+    fprintf('Max    = %.2f ms\n', max(Td_valid));
+
+    fprintf('\nTau 63->86:\n');
+    fprintf('Mean = %.2f ms, Std = %.2f ms\n', ...
+        mean(tau1_valid), std(tau1_valid));
+
+    fprintf('Tau 86->95:\n');
+    fprintf('Mean = %.2f ms, Std = %.2f ms\n', ...
+        mean(tau2_valid), std(tau2_valid));
+
+    fprintf('Tau 63->95 / 2:\n');
+    fprintf('Mean = %.2f ms, Std = %.2f ms\n', ...
+        mean(tau3_valid), std(tau3_valid));
+
+
+    % =========================================================
+    % FIGURE 1 - Tp
+    % =========================================================
+    figure('Name','Manual P1D Tp');
+
+    tiledlayout(2,1, ...
+        'TileSpacing','compact', ...
+        'Padding','compact');
+
+    nexttile;
+
+    histogram(Tp_valid);
+    grid on;
+
+    xlabel('T_p [ms]');
+    ylabel('Count');
+    title('Manual P1 time constant');
+
+    nexttile;
+
+    plot(Tp_ms, 'o-');
+    grid on;
+
+    xlabel('Measurement');
+    ylabel('T_p [ms]');
+    title('T_p for each segment');
+
+
+    % =========================================================
+    % FIGURE 2 - Td
+    % =========================================================
+    figure('Name','Manual P1D Td');
+
+    tiledlayout(2,1, ...
+        'TileSpacing','compact', ...
+        'Padding','compact');
+
+    nexttile;
+
+    histogram(Td_valid);
+    grid on;
+
+    xlabel('T_d [ms]');
+    ylabel('Count');
+    title('Manual transport delay');
+
+    nexttile;
+
+    plot(Td_ms, 'o-');
+    grid on;
+
+    xlabel('Measurement');
+    ylabel('T_d [ms]');
+    title('T_d for each segment');
+
+
+    % =========================================================
+    % FIGURE 3 - Compare tau estimates
+    % =========================================================
+    figure('Name','Tau consistency');
+
+    plot(tau1_ms, 'o-');
+    hold on;
+
+    plot(tau2_ms, 'o-');
+    plot(tau3_ms, 'o-');
+
+    grid on;
+
+    xlabel('Measurement');
+    ylabel('\tau [ms]');
+
+    legend( ...
+        '\tau from 63%-86%', ...
+        '\tau from 86%-95%', ...
+        '\tau from 63%-95%', ...
+        'Location','best');
+
+    title('Consistency of time constant estimates');
+
+
+    % =========================================================
+    % FIGURE 4 - Compare extrapolated start times
+    % =========================================================
+    %
+    % Absolute timestamps are not very intuitive, so compare
+    % their deviations from their mean for each segment.
+    % =========================================================
+
+    start_matrix = [
+        start63_all
+        start86_all
+        start95_all
+    ];
+
+    start_mean = mean(start_matrix, 1, 'omitnan');
+
+    err63 = (start63_all - start_mean) * 1000;
+    err86 = (start86_all - start_mean) * 1000;
+    err95 = (start95_all - start_mean) * 1000;
+
+
+    figure('Name','P1 start consistency');
+
+    plot(err63, 'o-');
+    hold on;
+
+    plot(err86, 'o-');
+    plot(err95, 'o-');
+
+    yline(0, '--');
+
+    grid on;
+
+    xlabel('Measurement');
+    ylabel('Start estimate error [ms]');
+
+    legend( ...
+        'from 63%', ...
+        'from 86%', ...
+        'from 95%', ...
+        'Location','best');
+
+    title('Consistency of extrapolated P1 start');
+
+
+    % =========================================================
+    % Extra useful scalar:
+    % spread of the three start estimates
+    % =========================================================
+
+    start_spread_ms = ...
+        (max(start_matrix, [], 1) - min(start_matrix, [], 1)) * 1000;
+
+    figure('Name','P1 start spread');
+
+    histogram(start_spread_ms(~isnan(start_spread_ms)));
+    grid on;
+
+    xlabel('max(start) - min(start) [ms]');
+    ylabel('Count');
+
+    title('Agreement of 63%, 86% and 95% extrapolation');
+
+
+    fprintf('\nP1 start consistency:\n');
+    fprintf('Mean spread = %.2f ms\n', ...
+        mean(start_spread_ms, 'omitnan'));
+
+    fprintf('Median spread = %.2f ms\n', ...
+        median(start_spread_ms, 'omitnan'));
+
+end
+
+
+
+%% MAGISTERKA 
+return
+% dwa niezbyt ładne wykresy, przebiegi skoku w gore i w dol ZROBIONE
+k=1;
+TSTART=4.8
+T = parquetread(paths(k));
+
+
+t = T.timestamp_s - T.timestamp_s(1);
+c = T.can_signals_AUTO_CONTROL_FRONT_LEFT_SETPOINT;
+u = T.can_signals_ACTUATOR_LEFT_FOIL_FEEDBACK_SETPOINT_US;
+y = T.can_signals_ACTUATOR_LEFT_FOIL_FEEDBACK_POSITION_RAW;
+from = TSTART;
+to = from + 1.0;
+c_idx = ~isnan(c) & ~isnan(t) & (t >= from) & (t <= to);
+t_c = t(c_idx);
+c = c(c_idx);
+uy_idx = ~isnan(u) & ~isnan(y) & ~isnan(t) & (t >= from) & (t <= to);
+t_uy = t(uy_idx);
+u = u(uy_idx);
+y = y(uy_idx);
+
+ff = figure('Name','actuator_step_up','Units','inches','Position',[2 2 5 3]);
+yyaxis left
+plot(t_c, c, '.');
+ylabel('Requested angle [$^\circ$]', ...
+    'Interpreter','latex','FontName','Times New Roman');
+yyaxis right
+plot(t_uy, y, '.');
+ylabel('Raw ADC measurement [-]', ...
+    'Interpreter','latex','FontName','Times New Roman');
+xlabel('Time [s]', 'Interpreter','latex','FontName','Times New Roman');
+set(gca,'FontName','Times New Roman');
+
+
+t = T.timestamp_s - T.timestamp_s(1);
+c = T.can_signals_AUTO_CONTROL_FRONT_LEFT_SETPOINT;
+u = T.can_signals_ACTUATOR_LEFT_FOIL_FEEDBACK_SETPOINT_US;
+y = T.can_signals_ACTUATOR_LEFT_FOIL_FEEDBACK_POSITION_RAW;
+from = TSTART+1.0+2;
+to = from + 1.0;
+c_idx = ~isnan(c) & ~isnan(t) & (t >= from) & (t <= to);
+t_c = t(c_idx);
+c = c(c_idx);
+uy_idx = ~isnan(u) & ~isnan(y) & ~isnan(t) & (t >= from) & (t <= to);
+t_uy = t(uy_idx);
+u = u(uy_idx);
+y = y(uy_idx);
+
+fff = figure('Name','actuator_step_down','Units','inches','Position',[2 2 5 3]);
+yyaxis left
+plot(t_c, c, '.');
+ylabel('Requested angle [$^\circ$]', ...
+    'Interpreter','latex','FontName','Times New Roman');
+yyaxis right
+plot(t_uy, y, '.');
+ylabel('Raw ADC measurement [-]', ...
+    'Interpreter','latex','FontName','Times New Roman');
+xlabel('Time [s]', 'Interpreter','latex','FontName','Times New Roman');
+set(gca,'FontName','Times New Roman');
+
+exportgraphics(ff, 'actuator_step_up.pdf', ...
+    'ContentType', 'vector', ...
+    'BackgroundColor', 'none');
+exportgraphics(fff, 'actuator_step_down.pdf', ...
+    'ContentType', 'vector', ...
+    'BackgroundColor', 'none');
+
+%% MAGISTERKA
+% Histogram z manualnego wyliczania dynamiki obiektu. za pomoca 
+
+Tp_all = [];
+Td_all = [];
+for a = 1:3
+    for s = 1:3
+        S = datasets{a,s};
+        Tp = arrayfun(@(x) x.manual_P1D.Tp, S);
+        Td = arrayfun(@(x) x.manual_P1D.Td, S);
+        Tp_all = [Tp_all Tp];
+        Td_all = [Td_all Td];
+    end
+end
+
+Tp_ms = Tp_all * 1000;
+Td_ms = Td_all * 1000;
+
+Tp_valid = Tp_ms(~isnan(Tp_ms));
+Td_valid = Td_ms(~isnan(Td_ms));
+
+ffff = figure('Name','time_constant','Units','inches','Position',[2 2 5 3]);
+histogram(Tp_valid);
+xlabel('T [ms]');
+ylabel('Count');
+xlim([0 27]);
+% title('Manual P1 time constant');
+
+fffff = figure('Name','transport_delay','Units','inches','Position',[2 2 5 3]);,
+histogram(Td_valid);
+xlabel('L [ms]');
+ylabel('Count');
+xlim([10 60]);
+% title('Manual transport delay');
+
+Tp_valid = Tp_valid(Tp_valid > 0 & Tp_valid <= 27);
+Td_valid = Td_valid(Td_valid >= 10 & Td_valid <= 60);
+clc
+fprintf("T mean=%f\tmedian=%f\n", mean(Tp_valid), median(Tp_valid));
+fprintf("L mean=%f\tmedian=%f\n", mean(Td_valid), median(Td_valid));
+
+exportgraphics(ffff, 'actuator_hist_time_constant.pdf', ...
+    'ContentType', 'vector', ...
+    'BackgroundColor', 'none');
+exportgraphics(fffff, 'actuator_hist_transport_delay.pdf', ...
+    'ContentType', 'vector', ...
+    'BackgroundColor', 'none');
+
+
+%% Save the actuator identification data as .mat file 
+
+T = median(Tp_valid);
+L = median(Td_valid);
+return
+save("hydrofoil_actuator.mat", "L", "T");
+return

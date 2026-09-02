@@ -58,10 +58,12 @@ function params = boat_model_parameters_4dof() %#codegen
     params.hydrofoils.S_rear  = 8700 / 1e6;    % [m^2]  single foil area
 
     %% Hydrofoil actuators dynamics
-    data = load("..\ACTUATORS-CHARACTERIZATION\hydrofoil_actuator_dynamics.mat");
+    % data = load("..\ACTUATORS-CHARACTERIZATION\hydrofoil_actuator_dynamics.mat");
+    data = load("..\ACTUATORS-CHARACTERIZATION\hydrofoil_actuator.mat");
+    % save("hydrofoil_actuator.mat", "L_prel", "T_prel", "T_opt", "L_opt");
 
-    params.hydrofoils.dynamics.T = data.T_avg;
-    params.hydrofoils.dynamics.L = data.L_avg;
+    params.hydrofoils.dynamics.T = data.T_opt;
+    params.hydrofoils.dynamics.L = data.L_opt;
     params.hydrofoils.dynamics.Ts_act = 0.01; % PWM update rate 100 Hz
     params.hydrofoils.dynamics.alpha_max = 12;
     params.hydrofoils.dynamics.alpha_min = -6; 
@@ -75,7 +77,7 @@ function params = boat_model_parameters_4dof() %#codegen
 
     %% Lookup table data for CL(alpha) and CD(alpha)
     data = load("../ACTUATORS-CHARACTERIZATION/eppler874.mat");
-    
+
     params.hydrofoils.LUT.front.alpha = data.LUT_alpha_F;
     params.hydrofoils.LUT.front.CL    = data.LUT_CL_F;
     params.hydrofoils.LUT.front.CD    = data.LUT_CD_F;
