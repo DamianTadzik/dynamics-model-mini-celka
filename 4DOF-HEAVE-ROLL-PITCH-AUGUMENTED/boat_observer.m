@@ -66,8 +66,8 @@ function [x_hat, info] = boat_observer(gyro, accel, tof, tof_status, params) %#c
 
     % compute vertical accel input a_z (m/s^2)
     aB = accel * g;
-    aW = quat_rotate(quat, aB);
-    a_z = aW(3) - g - xh(3);           % NED +down
+    aW = quat_rotate(quat, aB);    
+    a_z = aW(3) - g; % NED +down
     
     % KF predict with accel input and bias
     A = [1 Ts -0.5*Ts^2;
@@ -83,10 +83,6 @@ function [x_hat, info] = boat_observer(gyro, accel, tof, tof_status, params) %#c
     
     xh = A*xh + B*a_z;
     Pz = A*Pz*A' + Q;
-    
-    z      = xh(1);
-    z_dot  = xh(2);
-    % a_bias = xh(3);
 
     for i = 1:4
         if tof_status(i) == 1   % 1 = good (simulation convention)
@@ -105,24 +101,10 @@ function [x_hat, info] = boat_observer(gyro, accel, tof, tof_status, params) %#c
         end
     end
 
-    
-    % % if tof_status
-    % %     z_meas = tof_to_z(tof, phi, theta, params);
-    % % 
-    % %     H = [1 0 0];
-    % % 
-    % %     R = params.observer.heave_KF.R;
-    % % 
-    % %     % Update
-    % %     S = H*Pz*H' + R;
-    % %     K = Pz*H' / S;
-    % %     xh = xh + K*(z_meas - H*xh);
-    % %     Pz = (eye(3) - K*H)*Pz;
-    % % 
-    % %     z      = xh(1);
-    % %     z_dot  = xh(2);
-    % %     % a_bias = xh(3);
-    % % end
+    z      = xh(1);
+    z_dot  = xh(2);
+    % a_bias = xh(3);
+
 
     %% Output vector creation
     x_hat = [ ...
@@ -230,12 +212,11 @@ function [q, b, w] = mahony_update(q, b, gyro_rad_s, accel_g, params)
     Ts = params.Ts;
 
     % Gate accel (gravity only)
-    a_norm = norm(accel_g);
-    use_acc = (a_norm > params.observer.attitude.acc_norm_min) && ...
-              (a_norm < params.observer.attitude.acc_norm_max);
+    acc_norm_error = abs(norm(accel_g) - 1.0);
+    use_acc = acc_norm_error < params.observer.attitude.acc_norm_tolerance;
 
     if use_acc
-        a = accel_g / a_norm;
+        a = accel_g / norm(accel_g);
         % Estimated gravity direction in BODY frame (NED: +Z down)
         g_est = quat_rotate(quat_conj(q), [0;0;1]);
         e = cross(a, g_est);

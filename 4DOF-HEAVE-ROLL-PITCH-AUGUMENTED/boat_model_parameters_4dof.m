@@ -13,6 +13,9 @@ function params = boat_model_parameters_4dof() %#codegen
     % Ix_B = 52245720.20525  g mm^2
     % Iy_B = 471960971.2696  g mm^2
     % Iz_B = 491601070.08109 g mm^2
+    % % I = [466354886.23585  -2320918.586      -105991.58121; ...
+    % %       -2320918.586    51517861.93984   15244257.05176; ...
+    % %        -105991.58121  15244257.05176  493023499.0188]; g mm^2 
     params.Ix_B = 0.05224572020525;  % [kg m^2]  roll inertia
     params.Iy_B = 0.4719609712696;   % [kg m^2]  pitch inertia
     params.Iz_B = 0.49160107008109;  % [kg m^2]  yaw inertia
@@ -42,7 +45,7 @@ function params = boat_model_parameters_4dof() %#codegen
     ]; 
 
     %% Strut drag
-    data = load("..\DRAG-CHARACTERIZATION\drag_front_strut.mat")
+    data = load("..\DRAG-CHARACTERIZATION\drag_front_strut.mat");
     params.front_struts.CD = [data.export.CD];
     params.front_struts.chord_m = [data.export.chord_m];
     params.front_struts.distance_m = [data.export.distance_m];
@@ -60,7 +63,7 @@ function params = boat_model_parameters_4dof() %#codegen
     %% Hydrofoil actuators dynamics
     % data = load("..\ACTUATORS-CHARACTERIZATION\hydrofoil_actuator_dynamics.mat");
     data = load("..\ACTUATORS-CHARACTERIZATION\hydrofoil_actuator.mat");
-    % save("hydrofoil_actuator.mat", "L_prel", "T_prel", "T_opt", "L_opt");
+    % ("hydrofoil_actuator.mat", "L_prel", "T_prel", "T_opt", "L_opt");
 
     params.hydrofoils.dynamics.T = data.T_opt;
     params.hydrofoils.dynamics.L = data.L_opt;

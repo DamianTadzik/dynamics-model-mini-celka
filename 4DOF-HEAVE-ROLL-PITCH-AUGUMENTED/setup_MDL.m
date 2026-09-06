@@ -23,7 +23,7 @@ ctrl_params_bus = eval(busInfo_ctrl.busName);
 % TODO: Create parameter set like sampling time etc... solver... tsim
 Ts_sim = 0.001; 
 
-load("last_trim.mat",'trim')
+load("tmp_trim_4dof.mat",'trim')
 % load("trims\trim_4dof_vel2.mat",'trim')
 % load("trim_4dof_vel2_pitched.mat",'trim')
 x0 = trim.x0;

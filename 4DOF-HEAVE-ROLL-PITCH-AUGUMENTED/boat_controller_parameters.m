@@ -12,6 +12,7 @@ function params = boat_controller_parameters()
     params.tof.pos_AR_B = [ -616; +182; -37 ] / 1000;  % [m]
 
     %% Observer KF parameters
+    % Heave KF
     % Tof noise? [z?]
     params.observer.heave_KF.R = 4.864859165974720e-05;
     params.observer.heave_KF.R_i = ones([4, 1]) * 4.864859165974720e-03 * 4;
@@ -22,20 +23,38 @@ function params = boat_controller_parameters()
         1e-3  ...   % accel bias
     ]);
 
+    % Velocity KF
+    % State: [x_dot, a_bias_x]
+    sigma_gps = 0.05; % [m/s]
+    params.observer.velocity_KF.R = sigma_gps^2;
+
+    params.observer.velocity_KF.Q = diag([ ...
+        1e-6, ...   % x_dot
+        1e-7  ...   % accel bias_x
+    ]);
+
     %% Observer Mahony filter parameters
     params.observer.attitude.Kp = 1.2;
     params.observer.attitude.Ki = 0.01;
 
-    params.observer.attitude.acc_norm_min = 0.1;
-    params.observer.attitude.acc_norm_max = 1.1;
+    params.observer.attitude.acc_norm_tolerance = 0.2; % [g]
 
     %% Actuator model parameters
-    data = load("..\ACTUATORS-CHARACTERIZATION\hydrofoil_actuator_dynamics.mat");
+    data = load("..\ACTUATORS-CHARACTERIZATION\hydrofoil_actuator.mat");
 
-    params.actuator_model.T = data.T_avg;
-    % params.actuator_model.L = data.L_avg; % TO BE DONE FIXME LATER
+    % Continouus-time parameters
+    params.actuator_model.T = data.T_opt;
+    params.actuator_model.L = data.L_opt;
+
+    % Discrete-time parameters, G(s) = 1 / (T*s + 1), ZOH discretization: 
+    params.actuator_model.Td = exp(-params.Ts / params.actuator_model.T); 
+    % Delay discretized to number of samples % Rounded up to next 0.01
+    params.actuator_model.Ld = ceil(params.actuator_model.L / params.Ts);
+    
     params.actuator_model.alpha_min = -6.0;
     params.actuator_model.alpha_max = 12.0;
 
     %% Other parameters?  LQR gains for schedulling probablly but LATER tODO
+
+    
 end

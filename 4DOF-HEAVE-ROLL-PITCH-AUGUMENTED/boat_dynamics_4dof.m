@@ -47,11 +47,11 @@ function [ xdot, info ] = boat_dynamics_4dof(x, u, w, params) %#codegen
 
     phi_BW        = x(5);
     theta_BW      = x(6);
-    psi_BW        = x(7);
+    psi_BW        = 0;%x(7); % Yaw is constrained in the reduced 4DOF model.
 
     omega_phi_B   = x(8);
     omega_theta_B = x(9);
-    omega_psi_B   = x(10);
+    omega_psi_B   = 0;%x(10); % Yaw is constrained in the reduced 4DOF model.
 
     alpha_FL_act  = x(11);
     alpha_FR_act  = x(12);
@@ -321,20 +321,23 @@ function [ xdot, info ] = boat_dynamics_4dof(x, u, w, params) %#codegen
                  (tau_pitch_B - omega_cross_Iomega(2)) / Iy_B;
                  (tau_yaw_B   - omega_cross_Iomega(3)) / Iz_B ];
 
-    %% Attitude kinematics: Euler ZYX (phi_BW, theta_BW, psi_BW) from body rates
-    % Valid for |theta_BW| ~= 90 deg (standard singularity)
-    tan_th = tan(theta_BW);
-    sec_th = 1 / cos(theta_BW);
-
-    phi_dot_BW   = omega_phi_B ...
-                 + omega_theta_B * sin(phi_BW) * tan_th ...
-                 + omega_psi_B   * cos(phi_BW) * tan_th;
-
-    theta_dot_BW = omega_theta_B * cos(phi_BW) ...
-                 - omega_psi_B   * sin(phi_BW);
-
-    psi_dot_BW   = omega_theta_B * sin(phi_BW) * sec_th ...
-                 + omega_psi_B   * cos(phi_BW) * sec_th;
+    %% Reduced attitude kinematics
+    phi_dot_BW   = omega_phi_B;
+    theta_dot_BW = omega_theta_B;
+    % Diagnostic value from unconstrained ZYX kinematics
+    psi_dot_BW = omega_theta_B * sin(phi_BW) / cos(theta_BW);
+    % %% Attitude kinematics: Euler ZYX (phi_BW, theta_BW, psi_BW) from body rates
+    % % Valid for |theta_BW| ~= 90 deg (standard singularity)
+    % tan_th = tan(theta_BW);
+    % sec_th = 1 / cos(theta_BW);
+    % 
+    % phi_dot_BW   = omega_phi_B ...
+    %              + omega_theta_B * sin(phi_BW) * tan_th ...
+    %              + omega_psi_B   * cos(phi_BW) * tan_th;
+    % theta_dot_BW = omega_theta_B * cos(phi_BW) ...
+    %              - omega_psi_B   * sin(phi_BW);
+    % psi_dot_BW   = omega_theta_B * sin(phi_BW) * sec_th ...
+    %              + omega_psi_B   * cos(phi_BW) * sec_th;
 
     %% Surge, heave dynamics in world frame (z_W is downwards)
     xWddot = (F_total_W(1) - 0) / (m + ma); % Hull drag to be done yet ;)

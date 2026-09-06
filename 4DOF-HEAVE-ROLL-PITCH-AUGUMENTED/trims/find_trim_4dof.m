@@ -1,4 +1,4 @@
-function [trim, info_out] = find_equilibrium_4dof(varargin)
+function [trim, info_out] = find_trim_4dof(varargin)
 
     % defaults 
     cfg.params   = boat_model_parameters_4dof();
@@ -97,11 +97,11 @@ function [trim, info_out] = find_equilibrium_4dof(varargin)
     
     %% Print info
     fprintf('\n=== TRIM CHECK (4DOF) ===\n');
-    fprintf('Surge accel      x_ddot : %+8.4f  m/s^2\n', xdot(2));
-    fprintf('Heave accel      z_ddot : %+8.4f  m/s^2\n', xdot(4));
-    fprintf('Roll accel       p_dot  : %+8.4f  rad/s^2\n', xdot(8));
-    fprintf('Pitch accel      q_dot  : %+8.4f  rad/s^2\n', xdot(9));
-    fprintf('Yaw accel        r_dot  : %+8.4f  rad/s^2\n', xdot(10));
+    fprintf('Surge accel      x_ddot : %+8.6f  m/s^2\n', xdot(2));
+    fprintf('Heave accel      z_ddot : %+8.6f  m/s^2\n', xdot(4));
+    fprintf('Roll accel       p_dot  : %+8.6f  rad/s^2\n', xdot(8));
+    fprintf('Pitch accel      q_dot  : %+8.6f  rad/s^2\n', xdot(9));
+    fprintf('Yaw accel        r_dot  : %+8.6f  rad/s^2\n', xdot(10));
     
     fprintf('\nState (trimmed):\n');
     fprintf('xWdot   = %+6.3f m/s\n', x0(2));
@@ -128,5 +128,5 @@ function [trim, info_out] = find_equilibrium_4dof(varargin)
 
     info_out = info;
         
-    save('last_trim.mat','trim');
+    save('tmp_trim_4dof.mat', 'trim');
 end
