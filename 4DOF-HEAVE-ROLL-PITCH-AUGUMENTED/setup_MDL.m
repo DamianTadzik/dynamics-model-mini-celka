@@ -6,7 +6,7 @@ clc; clear; bdclose all; close all;
 model_name = "boat_dynamics_model";
 
 % Define folder names to be added to the path
-foldernames = ["trims", "controllers"];
+foldernames = ["trims", "controllers", "linearized_A_B_x0_u0"];
 for i = 1:length(foldernames)
     addpath(foldernames(i));
 end

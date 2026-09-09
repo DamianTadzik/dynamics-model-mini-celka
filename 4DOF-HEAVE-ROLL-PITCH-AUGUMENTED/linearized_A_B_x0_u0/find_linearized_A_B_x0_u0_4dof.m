@@ -1,5 +1,6 @@
-function [A, B] = find_linearized_A_B_x0_u0_4dof(x0, u0)
+function [A, B, x0, u0] = find_linearized_A_B_x0_u0_4dof(x0, u0)
 
+    doSave = (nargin == 0);
     if nargin == 0
         load('tmp_trim_4dof.mat','trim');
         x0 = trim.x0;
@@ -66,12 +67,13 @@ function [A, B] = find_linearized_A_B_x0_u0_4dof(x0, u0)
     u0 = u0(iu);
     
     %% Save linearized model
-    save("tmp_linearized_A_B_x0_u0_4dof.mat", ...
-        "A", ...
-        "B", ...
-        "x0", ...
-        "u0");
-    
+    if doSave
+        save("tmp_linearized_A_B_x0_u0_4dof.mat", ...
+            "A", ...
+            "B", ...
+            "x0", ...
+            "u0");
+    end
     %% Checks
     fprintf('\n=== LINEARIZATION ===\n');
     fprintf('||f0|| = %.3e (should be ~0 at trim)\n', norm(f0));

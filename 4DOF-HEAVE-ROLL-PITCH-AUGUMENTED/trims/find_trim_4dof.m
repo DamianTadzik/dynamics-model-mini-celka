@@ -1,5 +1,6 @@
 function [trim, info_out] = find_trim_4dof(varargin)
 
+    doSave = isempty(varargin);
     % defaults 
     cfg.params   = boat_model_parameters_4dof();
     cfg.xWdot    = 2.5;
@@ -128,5 +129,7 @@ function [trim, info_out] = find_trim_4dof(varargin)
 
     info_out = info;
         
-    save('tmp_trim_4dof.mat', 'trim');
+    if doSave
+        save('tmp_trim_4dof.mat', 'trim');
+    end
 end
