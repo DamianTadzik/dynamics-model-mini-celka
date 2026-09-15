@@ -88,7 +88,7 @@ a = coeffs(1);
 b = coeffs(2);
 
 %%
-fig = figure('Name', 'noise_vs_distance','Units','inches','Position',[2 2 6 4]);
+fig = figure('Name', 'noise_vs_distance','Units','centimeters','Position',[2 2 16 9]);
 plot(x_modes, noise_sigmas, 'o'); hold on;
 plot(x_modes, a*x_modes + b, '--'); hold off;
 % xlabel('x\_mode', 'FontName', 'Times New Roman'); 
@@ -96,14 +96,17 @@ plot(x_modes, a*x_modes + b, '--'); hold off;
 % title('Noise \sigma vs x\_mode');
 grid on;
 set(gca,'FontName','Times New Roman');
-
-xlabel('Measured distance mode [mm]', 'FontName', 'Times New Roman')
-ylabel('Noise standard deviation \sigma [mm]', 'FontName', 'Times New Roman')
-legend('Measurements', 'Linear regression', 'Location', 'northwest', 'FontName', 'Times New Roman')
+set(gca,'FontSize',9);
+xlabel('Measured distance mode [mm]', 'FontName','Times New Roman','FontSize',9)
+ylabel('Noise standard deviation \sigma [mm]', 'FontName','Times New Roman','FontSize',9)
+legend('Measurements', 'Linear regression', 'Location', 'northwest', 'FontName','Times New Roman','FontSize',9)
 
 exportgraphics(fig, 'sensor_TOF_noise_vs_distance.pdf', ...
     'ContentType', 'vector', ...
-    'BackgroundColor', 'none');
+    'BackgroundColor', 'none', ...
+    'Units', 'centimeters', ...
+    'Width', 16, ...
+    'Height', 9);
 
 %% Save the calculated coefficents to be used in a noise generator
 
@@ -148,31 +151,38 @@ time = sensor_data(i).t - sensor_data(i).t(1);
 value = sensor_data(i).x;
 
 % Plot przebiegu z sensora
-f = figure('Name','sensor_output','Units','inches','Position',[2 2 6 4]);
-plot(time, value, '-o')
-xlabel('Time [s]','FontName','Times New Roman')
-ylabel('Measured distance [mm]','FontName','Times New Roman')
+f = figure('Name','sensor_TOF_output','Units','centimeters','Position',[2 2 8 5]);
+plot(time, value, '.'); grid on;
+xlabel('Time [s]','FontName','Times New Roman','FontSize',9)
+ylabel('Measured distance [mm]','FontName','Times New Roman','FontSize',9)
 set(gca,'FontName','Times New Roman');
-
-exportgraphics(f, 'sensor_output.pdf', ...
+set(gca,'FontSize',9);
+ylim([86, 98]);
+exportgraphics(f, 'sensor_TOF_output.pdf', ...
     'ContentType', 'vector', ...
-    'BackgroundColor', 'none');
+    'BackgroundColor', 'none', ...
+    'Units', 'centimeters', ...
+    'Width', 8, ...
+    'Height', 5);
 
 % Plot histogramu
-ff = figure('Name','sensor_TOF_histogram','Units','inches','Position',[2 2 6 4]);
+ff = figure('Name','sensor_TOF_histogram','Units','centimeters','Position',[2 2 8 5]);
     q_step = 2;
     noise = (value - mode(value));
     edges = (max(value) - min(value))/q_step;
     edges = (-edges:edges+1)*q_step - q_step/2; 
     histogram(noise, edges); grid on;
-
-xlabel('Deviation from modal distance [mm]','FontName','Times New Roman')
-ylabel('Number of samples','FontName','Times New Roman')
-
+xlabel('Deviation from modal distance [mm]','FontName','Times New Roman','FontSize',9)
+ylabel('Count','FontName','Times New Roman','FontSize',9)
 set(gca,'FontName','Times New Roman');
+set(gca,'FontSize',9);
+xlim([-7 7]);
 exportgraphics(ff, 'sensor_TOF_histogram.pdf', ...
     'ContentType', 'vector', ...
-    'BackgroundColor', 'none');
+    'BackgroundColor', 'none', ...
+    'Units', 'centimeters', ...
+    'Width', 8, ...
+    'Height', 5);
 
 % % Q-Q plot?
 % fff = figure(Name='qq_plot');

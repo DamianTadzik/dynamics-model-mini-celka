@@ -34,34 +34,42 @@ set(groot,'DefaultAxesFontName','Times New Roman','DefaultTextFontName','Times N
 
 
 % Prepare and plot CL figure
-fig_cl = figure('Name','fig_eppler874_cl','Units','inches','Position',[1 1 6 4]);
-plot(alpha_vals, CL_vals, 'g.', 'MarkerSize', 10); hold on;
+fig_cl = figure('Name','fig_eppler874_cl','Units','centimeters','Position',[1 1 8 5]);
+plot(alpha_vals, CL_vals, 'g.', 'MarkerSize', 9); hold on;
 % plot(alpha_vals+delta_a_r, CL_vals);
 % plot(alpha_vals+delta_a_f, CL_vals); hold off;
-xlabel('\alpha (deg)', 'FontName', 'Times New Roman'); 
-ylabel('C_L', 'FontName', 'Times New Roman');
-grid on;
+xlabel('\alpha [{\circ}]','FontName','Times New Roman','FontSize',9); 
+ylabel('C_L [-]','FontName','Times New Roman','FontSize',9);
+grid on; grid minor;
 set(gca,'FontName','Times New Roman');
+set(gca,'FontSize',9);
 % % Prepare for export as PDF
 % set(fig_cl,'PaperUnits','inches','PaperPosition',[0 0 6 4],'PaperSize',[6 4]);
 
 % Prepare and plot CD figure
-fig_cd = figure('Name','fig_eppler874_cd','Units','inches','Position',[2 2 6 4]);
-plot(alpha_vals, CD_vals, 'r.', 'MarkerSize', 10);
-xlabel('\alpha (deg)', 'FontName', 'Times New Roman'); 
-ylabel('C_D', 'FontName', 'Times New Roman');
-grid on;
+fig_cd = figure('Name','fig_eppler874_cd','Units','centimeters','Position',[2 2 8 5]);
+plot(alpha_vals, CD_vals, 'r.', 'MarkerSize', 9);
+xlabel(['\alpha [{\circ}]'],'FontName','Times New Roman','FontSize',9); 
+ylabel('C_D [-]','FontName','Times New Roman','FontSize',9);
+grid on; grid minor;
 set(gca,'FontName','Times New Roman');
+set(gca,'FontSize',9);
 % % Prepare for export as PDF
 % set(fig_cd,'PaperUnits','inches','PaperPosition',[0 0 6 4],'PaperSize',[6 4]);
 
 %temporary commented out
-% exportgraphics(fig_cl, 'fig_eppler874_cl.pdf', ...
-%     'ContentType', 'vector', ...
-%     'BackgroundColor', 'none');
-% exportgraphics(fig_cd, 'fig_eppler874_cd.pdf', ...
-%     'ContentType', 'vector', ...
-%     'BackgroundColor', 'none');
+exportgraphics(fig_cl, 'fig_eppler874_cl.pdf', ...
+    'ContentType', 'vector', ...
+    'BackgroundColor', 'none', ...
+    'Units', 'centimeters', ...
+    'Width', 8, ...
+    'Height', 5);
+exportgraphics(fig_cd, 'fig_eppler874_cd.pdf', ...
+    'ContentType', 'vector', ...
+    'BackgroundColor', 'none', ...
+    'Units', 'centimeters', ...
+    'Width', 8, ...
+    'Height', 5);
 
 %% WLICZENIE ASPECT RATIO do CL CD
 a = alpha_vals';
@@ -131,33 +139,37 @@ alpha_range_standard = -6:0.1:12;
 alpha_range_extended = -6-6:0.1:12+6;
 alpha_fit = alpha_range_extended;
 
-figc_cl = figure('Name','hydrofoil_corrected_cl','Units','inches','Position',[1 1 5 3]);
+figc_cl = figure('Name','hydrofoil_corrected_cl','Units','centimeters','Position',[1 1 8 5]);
 % plot(alpha_vals, CL_vals, 'g.', 'MarkerSize', 10); hold on;
 plot(a, l, '.', 'MarkerSize', 8, 'Color', [0.5 1 0.5]); hold on;
-xlabel('\alpha (deg)', 'FontName', 'Times New Roman'); 
-ylabel('C_L', 'FontName', 'Times New Roman');
-set(gca,'FontName','Times New Roman');grid on;
+xlabel('\alpha [{\circ}]','FontName','Times New Roman','FontSize',9); 
+ylabel('C_L [-]','FontName','Times New Roman','FontSize',9);
+set(gca,'FontName','Times New Roman');
+set(gca,'FontSize',9);
+grid on; grid minor;
 plot(alpha_fit, fCL_f(alpha_fit), '-', 'LineWidth', 1);
 plot(alpha_fit, fCL_r(alpha_fit), '-', 'LineWidth', 1);
-legend('XFOIL 2D data', ...
-       'Finite-span corrected front approximation', ...
-       'Finite-span corrected rear approximation', ...
-       'Location','best');
+legend('XFOIL 2D', ...
+       'front foil', ...
+       'rear foil', ...
+       'Location','best','FontName','Times New Roman','FontSize',9);
 % plot(alpha_f, CL_vals, '.')
 xlim([-6-4 12+2])
 
-figc_cd = figure('Name','fig_eppler874_cd','Units','inches','Position',[7 1 5 3]);
+figc_cd = figure('Name','fig_eppler874_cd','Units','centimeters','Position',[7 1 8 5]);
 % plot(alpha_vals, CD_vals, 'r.', 'MarkerSize', 10); hold on;
 plot(a, d, '.', 'MarkerSize', 8, 'Color', [1 0.5 0.5]); hold on;
-xlabel('\alpha (deg)', 'FontName', 'Times New Roman'); 
-ylabel('C_D', 'FontName', 'Times New Roman');
-set(gca,'FontName','Times New Roman');grid on;
+xlabel('\alpha [{\circ}]','FontName','Times New Roman','FontSize',9); 
+ylabel('C_D [-]','FontName','Times New Roman','FontSize',9);
+set(gca,'FontName','Times New Roman');
+set(gca,'FontSize',9);
+grid on; grid minor;
 plot(alpha_fit, fCD_f(alpha_fit), '-', 'LineWidth', 1);
 plot(alpha_fit, fCD_r(alpha_fit), '-', 'LineWidth', 1);
-legend('XFOIL 2D data', ...
-       'Finite-span corrected front approximation', ...
-       'Finite-span corrected rear approximation', ...
-       'Location','best');
+legend('XFOIL 2D', ...
+       'front foil', ...
+       'rear foil', ...
+       'Location','best','FontName','Times New Roman','FontSize',9);
 % plot(alpha_vals, CD_f, '.')
 xlim([-6-4 12+2])
 ylim([0 .2])
@@ -165,10 +177,16 @@ ylim([0 .2])
 %temporary commented out
 exportgraphics(figc_cl, 'hydrofoil_corrected_cl.pdf', ...
     'ContentType', 'vector', ...
-    'BackgroundColor', 'none');
+    'BackgroundColor', 'none', ...
+    'Units', 'centimeters', ...
+    'Width', 8, ...
+    'Height', 5);
 exportgraphics(figc_cd, 'hydrofoil_corrected_cd.pdf', ...
     'ContentType', 'vector', ...
-    'BackgroundColor', 'none');
+    'BackgroundColor', 'none', ...
+    'Units', 'centimeters', ...
+    'Width', 8, ...
+    'Height', 5);
 %% SANITY CHECKS
 figure;
 plot(fCD_f(alpha_fit), fCL_f(alpha_fit), '-', 'LineWidth', 1.1); hold on;

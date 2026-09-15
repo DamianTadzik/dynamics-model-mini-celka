@@ -165,7 +165,7 @@ for k = 1:numel(speed_data)
 end
 
 %% PLOT MAGISTERA
-return
+% return
 % reprezentatywny przebieg
 i=2;
 time = speed_data(i).t - speed_data(i).t(1);
@@ -183,14 +183,18 @@ value = value(ind);
     value = value - v_trend + mean(value);
 
 % Plot przebiegu z sensora
-f = figure('Name','sensor_GPS_output','Units','inches','Position',[2 2 6 4]);
-plot(time, value, '-o')
-xlabel('Time [s]','FontName','Times New Roman')
-ylabel('Measured speed [m/s]','FontName','Times New Roman')
+f = figure('Name','sensor_GPS_output','Units','centimeters','Position',[2 2 8 5]);
+plot(time, value, '.')
+xlabel('Time [s]','FontName','Times New Roman','FontSize',9)
+ylabel('Measured speed [m/s]','FontName','Times New Roman','FontSize',9)
+grid on;
 set(gca,'FontName','Times New Roman');
+set(gca,'FontSize',9);
+xlim([time(1) time(end)]);
+ylim([min(value), max(value)]);
 
 % Plot histogramu
-ff = figure('Name','sensor_GPS_histogram','Units','inches','Position',[2 2 6 4]);
+ff = figure('Name','sensor_GPS_histogram','Units','centimeters','Position',[2 2 8 5]);
     q_step = 0.001;
     noise = (value - mean(value));
     edges = (max(value) - min(value))/q_step;
@@ -198,16 +202,25 @@ ff = figure('Name','sensor_GPS_histogram','Units','inches','Position',[2 2 6 4])
     % histogram(noise, edges); grid on;
     histogram(noise, "BinWidth", 0.005); grid on;
 
-xlabel('Deviation from mean speed [m/s]','FontName','Times New Roman')
-ylabel('Number of samples','FontName','Times New Roman')
+xlabel('Deviation from mean speed [m/s]','FontName','Times New Roman','FontSize',9)
+ylabel('Count','FontName','Times New Roman','FontSize',9)
+grid on;
 set(gca,'FontName','Times New Roman');
+set(gca,'FontSize',9);
+xlim([-0.1 0.1]);
 
 exportgraphics(f, 'sensor_GPS_output.pdf', ...
     'ContentType', 'vector', ...
-    'BackgroundColor', 'none');
+    'BackgroundColor', 'none', ...
+    'Units', 'centimeters', ...
+    'Width', 8, ...
+    'Height', 5);
 exportgraphics(ff, 'sensor_GPS_histogram.pdf', ...
     'ContentType', 'vector', ...
-    'BackgroundColor', 'none');
+    'BackgroundColor', 'none', ...
+    'Units', 'centimeters', ...
+    'Width', 8, ...
+    'Height', 5);
 
 
 %% Save the parameters 

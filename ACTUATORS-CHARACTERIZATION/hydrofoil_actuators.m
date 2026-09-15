@@ -21,20 +21,25 @@ if generate_trajectory
     controller_vals_saw = interp1(time, vals, controller_time, 'linear');
     controller_vals_sin = interp1(time, vals, controller_time, 'pchip');
 
-    % % controller_time = [controller_time  controller_time+controller_time(end)  controller_time+2*controller_time(end)];
-    controller_time = [controller_time controller_time controller_time];
+    controller_time = [controller_time  controller_time+controller_time(end)  controller_time+2*controller_time(end)];
+    % controller_time = [controller_time controller_time controller_time];
     controller_vals = [controller_vals_sqr controller_vals_saw controller_vals_sin];
     
-    f = figure('Name','actutator_test_trajectory','Units','inches','Position',[2 2 9 3]);
-    plot(time, vals, '*'); hold on; grid on;
-    plot(controller_time, controller_vals, '.');
-    xlabel('Time [s]', 'Interpreter','latex','FontName','Times New Roman');
-    ylabel('Requested angle [$^\circ$]', 'Interpreter','latex','FontName','Times New Roman');
+    f = figure('Name','actutator_test_trajectory','Units','centimeters','Position',[2 2 16 5]);
+    % plot(time, vals, '.'); hold on; grid on;
+    plot(controller_time, controller_vals, '.', 'MarkerSize', 1);
+    xlabel('Time [s]','FontName','Times New Roman','FontSize',9);
+    ylabel('Requested angle [{\circ}]','FontName','Times New Roman','FontSize',9);
+    grid on;
     set(gca,'FontName','Times New Roman');
+    set(gca,'FontSize',9);
     xlim([controller_time(1) controller_time(end)]);
-    % exportgraphics(f, 'actutator_test_trajectory.pdf', ...
-    %     'ContentType', 'vector', ...
-    %     'BackgroundColor', 'none');
+    exportgraphics(f, 'actutator_test_trajectory.pdf', ...
+        'ContentType', 'vector', ...
+        'BackgroundColor', 'none', ...
+        'Units', 'centimeters', ...
+        'Width', 16, ...
+        'Height', 5);
     return
     
     % Triplicate that trajectory for each of the three hydrofoils, one after
@@ -1331,17 +1336,18 @@ t_uy = t(uy_idx);
 u = u(uy_idx);
 y = y(uy_idx);
 
-ff = figure('Name','actuator_step_up','Units','inches','Position',[2 2 5 3]);
+ff = figure('Name','actuator_step_up','Units','centimeters','Position',[2 2 8 5]);
 yyaxis left
 plot(t_c, c, '.');
-ylabel('Requested angle [$^\circ$]', ...
-    'Interpreter','latex','FontName','Times New Roman');
+ylabel('Requested angle [{\circ}]','FontName','Times New Roman','FontSize',9);
+grid on;
 yyaxis right
 plot(t_uy, y, '.');
-ylabel('Raw ADC measurement [-]', ...
-    'Interpreter','latex','FontName','Times New Roman');
-xlabel('Time [s]', 'Interpreter','latex','FontName','Times New Roman');
+ylabel('Raw ADC measurement [-]','FontName','Times New Roman','FontSize',9);
+xlabel('Time [s]','FontName','Times New Roman','FontSize',9);
+grid on;
 set(gca,'FontName','Times New Roman');
+set(gca,'FontSize',9);
 
 
 t = T.timestamp_s - T.timestamp_s(1);
@@ -1358,24 +1364,31 @@ t_uy = t(uy_idx);
 u = u(uy_idx);
 y = y(uy_idx);
 
-fff = figure('Name','actuator_step_down','Units','inches','Position',[2 2 5 3]);
+fff = figure('Name','actuator_step_down','Units','centimeters','Position',[2 2 8 5]);
 yyaxis left
 plot(t_c, c, '.');
-ylabel('Requested angle [$^\circ$]', ...
-    'Interpreter','latex','FontName','Times New Roman');
+ylabel('Requested angle [{\circ}]','FontName','Times New Roman','FontSize',9);
+grid on;
 yyaxis right
 plot(t_uy, y, '.');
-ylabel('Raw ADC measurement [-]', ...
-    'Interpreter','latex','FontName','Times New Roman');
-xlabel('Time [s]', 'Interpreter','latex','FontName','Times New Roman');
+ylabel('Raw ADC measurement [-]','FontName','Times New Roman','FontSize',9);
+xlabel('Time [s]','FontName','Times New Roman','FontSize',9);
+grid on;
 set(gca,'FontName','Times New Roman');
+set(gca,'FontSize',9);
 
 exportgraphics(ff, 'actuator_step_up.pdf', ...
     'ContentType', 'vector', ...
-    'BackgroundColor', 'none');
+    'BackgroundColor', 'none', ...
+    'Units', 'centimeters', ...
+    'Width', 8, ...
+    'Height', 5);
 exportgraphics(fff, 'actuator_step_down.pdf', ...
     'ContentType', 'vector', ...
-    'BackgroundColor', 'none');
+    'BackgroundColor', 'none', ...
+    'Units', 'centimeters', ...
+    'Width', 8, ...
+    'Height', 5);
 
 %% MAGISTERKA
 % Histogram z manualnego wyliczania dynamiki obiektu. za pomoca 
@@ -1398,18 +1411,20 @@ Td_ms = Td_all * 1000;
 Tp_valid = Tp_ms(~isnan(Tp_ms));
 Td_valid = Td_ms(~isnan(Td_ms));
 
-ffff = figure('Name','time_constant','Units','inches','Position',[2 2 5 3]);
+ffff = figure('Name','time_constant','Units','centimeters','Position',[2 2 8 5]);
 histogram(Tp_valid);
-xlabel('T [ms]');
-ylabel('Count');
+xlabel('T [ms]','FontName','Times New Roman','FontSize',9);
+ylabel('Count','FontName','Times New Roman','FontSize',9);
 xlim([0 27]);
+grid on;
 % title('Manual P1 time constant');
 
-fffff = figure('Name','transport_delay','Units','inches','Position',[2 2 5 3]);,
+fffff = figure('Name','transport_delay','Units','centimeters','Position',[2 2 8 5]);
 histogram(Td_valid);
-xlabel('L [ms]');
-ylabel('Count');
+xlabel('L [ms]','FontName','Times New Roman','FontSize',9);
+ylabel('Count','FontName','Times New Roman','FontSize',9);
 xlim([10 60]);
+grid on;
 % title('Manual transport delay');
 
 Tp_valid = Tp_valid(Tp_valid > 0 & Tp_valid <= 27);
@@ -1420,10 +1435,16 @@ fprintf("L mean=%f\tmedian=%f\n", mean(Td_valid), median(Td_valid));
 
 exportgraphics(ffff, 'actuator_hist_time_constant.pdf', ...
     'ContentType', 'vector', ...
-    'BackgroundColor', 'none');
+    'BackgroundColor', 'none', ...
+    'Units', 'centimeters', ...
+    'Width', 8, ...
+    'Height', 5);
 exportgraphics(fffff, 'actuator_hist_transport_delay.pdf', ...
     'ContentType', 'vector', ...
-    'BackgroundColor', 'none');
+    'BackgroundColor', 'none', ...
+    'Units', 'centimeters', ...
+    'Width', 8, ...
+    'Height', 5);
 
 
 %% Save the actuator identification data as .mat file 
