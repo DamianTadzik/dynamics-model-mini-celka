@@ -21,7 +21,7 @@ function ret = sns_cut_fragment(t, x, t_start, t_end)
     t_trim = t(idx);
 
     %% Plot
-    if (false)
+    if (true)
         figure; hold on;
         plot(t, x, 'b-', 'LineWidth', 1);
         ylims = ylim;
