@@ -54,7 +54,18 @@ function params = boat_controller_parameters()
     params.actuator_model.alpha_min = -6.0;
     params.actuator_model.alpha_max = 12.0;
 
-    %% Other parameters?  LQR gains for schedulling probablly but LATER tODO
+    %% LQ gain scheduling parameters
+    data = load("all_LQ_grid_schedule.mat");
+    params.controller.LQ.velocity_grid = data.xWdotGrid_ms;
 
+    % LQR
+    params.controller.LQ.Kaug_grid = data.Kaug_grid;
+
+    % LQI
+    params.controller.LQ.K_aug_lqi_grid = data.K_aug_lqi_grid;
+
+    % Scheduled trim point
+    params.controller.LQ.x0aug_grid = data.x0aug_grid;
+    params.controller.LQ.u0_grid    = data.u0_grid;
     
 end

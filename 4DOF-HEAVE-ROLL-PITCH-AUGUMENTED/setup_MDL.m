@@ -6,7 +6,7 @@ clc; clear; bdclose all; close all;
 model_name = "boat_dynamics_model";
 
 % Define folder names to be added to the path
-foldernames = ["trims", "controllers", "linearized_A_B_x0_u0"];
+foldernames = ["trims", "controllers", "controllers/all_LQ", "linearized_A_B_x0_u0"];
 for i = 1:length(foldernames)
     addpath(foldernames(i));
 end
@@ -19,6 +19,8 @@ plant_params_bus = eval(busInfo_plant.busName);
 ctrl_params = boat_controller_parameters(); % Returns controller parameters structure
 busInfo_ctrl = Simulink.Bus.createObject(ctrl_params);   % Create the bus object
 ctrl_params_bus = eval(busInfo_ctrl.busName);
+% For python
+save('boat_controller_parameters.mat', 'ctrl_params', '-v7');
 
 % TODO: Create parameter set like sampling time etc... solver... tsim
 Ts_sim = 0.001; 

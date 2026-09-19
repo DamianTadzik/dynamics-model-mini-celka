@@ -115,7 +115,7 @@ function params = boat_model_parameters_4dof() %#codegen
     params.gyro.bias = data.gyroscope_noise_parameters.bias;
     params.gyro.quantization_step = data.gyroscope_noise_parameters.quantization_step;
     params.gyro.sample_time = 0.01; % [s]
-    params.gyro.range_dps = 2000; % [dps] = [deg/s]
+    params.gyro.range_dps = 250; % [dps] = [deg/s]
 
     %% Accelerometer sensor noise, quantization and sampling time
     params.accel.noise_sigma = data.accelerometer_noise_parameters.noise_sigma;
