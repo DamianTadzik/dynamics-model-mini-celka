@@ -2,7 +2,7 @@
 
 clc; clear;
 
-zWGrid_m     = -0.02:-0.01:-0.18;
+zWGrid_m     = -0.04:-0.02:-0.16;
 xWdotGrid_ms = 1.8:0.1:4.2;
 
 Nz = numel(zWGrid_m);

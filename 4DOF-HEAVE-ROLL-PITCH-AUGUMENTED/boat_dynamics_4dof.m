@@ -47,7 +47,7 @@ function [ xdot, info ] = boat_dynamics_4dof(x, u, w, params) %#codegen
 
     phi_BW        = x(5);
     theta_BW      = x(6);
-    psi_BW        = 0;%x(7); % Yaw is constrained in the reduced 4DOF model.
+    psi_BW        = x(7); % Yaw is constrained in the reduced 4DOF model.
 
     omega_phi_B   = x(8);
     omega_theta_B = x(9);
@@ -309,35 +309,63 @@ function [ xdot, info ] = boat_dynamics_4dof(x, u, w, params) %#codegen
     ma = 0;
     % ma = V(zW) * rho;
 
-    %% Rotational dynamics: Newton–Euler in body frame
-    %   I_B * domega_B + omega_B x (I_B * omega_B) = tau_B
-    Iomega_B = [Ix_B * omega_phi_B;
-                Iy_B * omega_theta_B;
-                Iz_B * omega_psi_B];
-
+    %% Rotational dynamics: Newton-Euler in body frame
+    % p, q, r are BODY angular rates.
+    %
+    % Reduced 4DOF assumption:
+    %   r = 0
+    % and yaw dynamics are not modelled.
+    %
+    % A yaw torque may still be generated and is retained in info for
+    % diagnostics, but it does not produce r dynamics.
+    
+    Iomega_B = [ ...
+        Ix_B * omega_phi_B;
+        Iy_B * omega_theta_B;
+        Iz_B * omega_psi_B
+    ];
+    
     omega_cross_Iomega = cross(omega_B, Iomega_B);
+    
+    domega_B = zeros(3,1);
+    
+    domega_B(1) = ...
+        (tau_roll_B - omega_cross_Iomega(1)) / Ix_B;
+    
+    domega_B(2) = ...
+        (tau_pitch_B - omega_cross_Iomega(2)) / Iy_B;
+    
+    % Yaw/body-z angular rate is constrained in the reduced model.
+    domega_B(3) = 0.0;
 
-    domega_B = [ (tau_roll_B  - omega_cross_Iomega(1)) / Ix_B;
-                 (tau_pitch_B - omega_cross_Iomega(2)) / Iy_B;
-                 (tau_yaw_B   - omega_cross_Iomega(3)) / Iz_B ];
-
-    %% Reduced attitude kinematics
-    phi_dot_BW   = omega_phi_B;
-    theta_dot_BW = omega_theta_B;
-    % Diagnostic value from unconstrained ZYX kinematics
-    psi_dot_BW = omega_theta_B * sin(phi_BW) / cos(theta_BW);
-    % %% Attitude kinematics: Euler ZYX (phi_BW, theta_BW, psi_BW) from body rates
-    % % Valid for |theta_BW| ~= 90 deg (standard singularity)
-    % tan_th = tan(theta_BW);
-    % sec_th = 1 / cos(theta_BW);
-    % 
-    % phi_dot_BW   = omega_phi_B ...
-    %              + omega_theta_B * sin(phi_BW) * tan_th ...
-    %              + omega_psi_B   * cos(phi_BW) * tan_th;
-    % theta_dot_BW = omega_theta_B * cos(phi_BW) ...
-    %              - omega_psi_B   * sin(phi_BW);
-    % psi_dot_BW   = omega_theta_B * sin(phi_BW) * sec_th ...
-    %              + omega_psi_B   * cos(phi_BW) * sec_th;
+    %% Attitude kinematics: Euler ZYX from BODY angular rates
+    %
+    % omega_B = [p; q; r]
+    %
+    % [phi_dot; theta_dot; psi_dot] =
+    % T(phi,theta) * [p; q; r]
+    %
+    % In the reduced 4DOF model r = 0, but psi_dot is generally
+    % NOT zero when phi ~= 0.
+    
+    sin_phi = sin(phi_BW);
+    cos_phi = cos(phi_BW);
+    
+    tan_theta = tan(theta_BW);
+    sec_theta = 1.0 / cos(theta_BW);
+    
+    phi_dot_BW = ...
+          omega_phi_B ...
+        + omega_theta_B * sin_phi * tan_theta ...
+        + omega_psi_B   * cos_phi * tan_theta;
+    
+    theta_dot_BW = ...
+          omega_theta_B * cos_phi ...
+        - omega_psi_B   * sin_phi;
+    
+    psi_dot_BW = ...
+          omega_theta_B * sin_phi * sec_theta ...
+        + omega_psi_B   * cos_phi * sec_theta;
 
     %% Surge, heave dynamics in world frame (z_W is downwards)
     xWddot = (F_total_W(1) - 0) / (m + ma); % Hull drag to be done yet ;)
@@ -363,7 +391,7 @@ function [ xdot, info ] = boat_dynamics_4dof(x, u, w, params) %#codegen
     % Body rates
     xdot(8) = domega_B(1);
     xdot(9) = domega_B(2);
-    xdot(10) = domega_B(3);
+    xdot(10) = 0.0; % domega_B(3); % r is constrained to zero in the reduced 4DOF model
     
     % Actuator rates
     xdot(11)  = alpha_FL_dot;
