@@ -51,16 +51,14 @@ function [ gyro_vector, accel_vector, distance_vector, gps_speed ] = boat_measur
     
     %% Accel
     % Accel output is in g not m/s^2
-
-    % Model contains only z_W at the time
-    accel_mps_W = [xdot(2); 0; xdot(4)+params.g]; 
+    accel_mps_W = [xdot(2); xdot(3); xdot(4)+params.g]; 
 
     % Since accelerometer is mounted in the _B frame we need to transform
     accel_mps_B = R_WB * accel_mps_W;
 
     accel_g_B = accel_mps_B / params.g;
     accel_vector = accel_g_B;
-
+    % accel_vector = R_WB * [0; 0; 1]; % gravity direction, NED
 
     %% ToF
     % If it's 'underwater' then 0 dont allow for negative meas XD

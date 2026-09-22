@@ -106,8 +106,8 @@ function out = find_all_LQ(A, B, x0, u0)
         12000, ...   3   z       heave
         10, ...      4   zdot    heave velocity
         2000, ...    5   phi     roll angle
-        200, ...     6   theta   pitch angle
-        2000, ...     8   p       roll rate (body)
+        10, ...      6   theta   pitch angle
+        2000, ...    8   p       roll rate (body)
         800, ...     9   q       pitch rate (body)
         1000, ...    11  FL
         1000, ...    12  FR
@@ -218,9 +218,9 @@ function out = find_all_LQ(A, B, x0, u0)
     ];
 
     Qi = diag([
-        5e4, ...   % integral of z heave error
-        5e3, ...   % integral of phi roll error
-        5e3  ...   % integral of theta pitch error
+        5e5, ...   % integral of z heave error
+        5e4, ...   % integral of phi roll error
+        5e2  ...   % integral of theta pitch error
     ]);
     
     Q_aug_lqi = blkdiag(Qaug, Qi);

@@ -37,7 +37,7 @@ function params = boat_controller_parameters()
     params.observer.attitude.Kp = 1.2;
     params.observer.attitude.Ki = 0.01;
 
-    params.observer.attitude.acc_norm_tolerance = 0.2; % [g]
+    params.observer.attitude.acc_norm_tolerance = 0.0625; % [g]
 
     %% Actuator model parameters
     data = load("..\ACTUATORS-CHARACTERIZATION\hydrofoil_actuator.mat");

@@ -206,7 +206,7 @@ end
 
 function [q, b, w] = mahony_update(q, b, gyro_rad_s, accel_g, params)
 
-    % Gains 
+    % Gains
     Kp = params.observer.attitude.Kp;
     Ki = params.observer.attitude.Ki;
     Ts = params.Ts;
