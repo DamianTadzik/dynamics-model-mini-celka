@@ -3,3 +3,4 @@
 *.slxc
 *.mexw64
 SENSORS-CHARACTERIZATION/data/Copy_of_log4.parquet
+/cenv/

@@ -161,9 +161,9 @@ for i, z in enumerate(HEIGHTS_TO_CUT_AT):
 # start_display()
 
 # Save results to CSV
-with open("buoyancy_results_heave.csv", "w", newline="") as f:
+with open("buoyancy_results_heave_pitch.csv", "w", newline="") as f:
     writer = csv.DictWriter(f, fieldnames=results[0].keys())
     writer.writeheader()
     writer.writerows(results)
 
-print("[OK] Results saved to buoyancy_results_heave.csv")
+print("[OK] Results saved to buoyancy_results_heave_pitch.csv")
