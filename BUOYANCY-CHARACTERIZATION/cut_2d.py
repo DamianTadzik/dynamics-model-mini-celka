@@ -25,7 +25,7 @@ HULL_STEP_FILE = "FULL.step"
 HEIGHTS_TO_CUT_AT = [0, 180]  # mm
 # HEIGHTS_TO_CUT_AT = np.linspace(0, 180, 9+1)
 HEIGHTS_TO_CUT_AT = np.concatenate([np.arange(0, 80, 1), np.arange(80, 180+1, 5)]).tolist()
-HEIGHTS_TO_CUT_AT = np.arange(-100, 0, 5).tolist()
+HEIGHTS_TO_CUT_AT = np.arange(180, 180+150+1, 10).tolist()
 print(f"{HEIGHTS_TO_CUT_AT=}")
 # PITCHES_TO_CUT_AT: rotation about the boat's own COM (com_pnt), axis = lateral (+X, STEP frame).
 # Right-hand rule about +X: positive theta rotates +Y toward +Z.
