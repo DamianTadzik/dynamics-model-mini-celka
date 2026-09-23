@@ -28,8 +28,8 @@ HEIGHTS_TO_CUT_AT = np.concatenate([np.arange(0, 80, 1), np.arange(80, 180+1, 5)
 print(f"{HEIGHTS_TO_CUT_AT=}")
 # PITCHES_TO_CUT_AT: rotation about the boat's own COM (com_pnt), axis = lateral (+X, STEP frame).
 # Right-hand rule about +X: positive theta rotates +Y toward +Z.
-PITCHES_TO_CUT_AT = list(range(-20, 21)) # deg from -20 to 20
-# PITCHES_TO_CUT_AT = [-10, -5, 0, 5, 10] # deg
+PITCHES_TO_CUT_AT = list(range(0, 21)) # deg from -20 to 20
+# PITCHES_TO_CUT_AT = [10, 20] # deg
 print(f"{PITCHES_TO_CUT_AT=}")
 HEIGHTS_TO_SAVE     = []  # mm
 HEIGHTS_TO_DISPLAY  = []  # mm
@@ -45,33 +45,43 @@ COM_STEP_MM = gp_Pnt(0, -FORWARD_MM, -DOWN_MM)  # boat's COM, raw (unshifted) ST
 BOX_SIZE_XY = 3000     # 3 m wide/long
 BOX_DEPTH   = 1000     # 1 m depth
 
-# Read the hull model
-reader = STEPControl_Reader()
-status = reader.ReadFile(HULL_STEP_FILE)
-if status != 1:
-    raise RuntimeError("Nie udało się wczytać pliku STEP.")
-reader.TransferRoots()
-hull = reader.OneShape()
+# Reload the hull from scratch every N pitch iterations, to avoid whatever OCC-internal
+RELOAD_HULL_EVERY_N_PITCHES = 2
 
-# cleanup
-from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_Copy
-from OCC.Core.ShapeUpgrade import ShapeUpgrade_UnifySameDomain
-from OCC.Core.BRepMesh import BRepMesh_IncrementalMesh
-# Copy to detach transient references
-hull = BRepBuilderAPI_Copy(hull).Shape()
-# Merge coplanar/collinear faces (reduces complexity)
-unifier = ShapeUpgrade_UnifySameDomain(hull, True, True, True)
-unifier.Build()
-hull = unifier.Shape()
-# Pre-mesh to speed up Boolean ops (tolerance ~1 mm)
-BRepMesh_IncrementalMesh(hull, 1.0)
+def load_hull():
+    from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_Copy
+    from OCC.Core.ShapeUpgrade import ShapeUpgrade_UnifySameDomain
+    from OCC.Core.BRepMesh import BRepMesh_IncrementalMesh
+
+    reader = STEPControl_Reader()
+    status = reader.ReadFile(HULL_STEP_FILE)
+    if status != 1:
+        raise RuntimeError("Nie udało się wczytać pliku STEP.")
+    reader.TransferRoots()
+    h = reader.OneShape()
+
+    # Copy to detach transient references
+    h = BRepBuilderAPI_Copy(h).Shape()
+    # Merge coplanar/collinear faces (reduces complexity)
+    unifier = ShapeUpgrade_UnifySameDomain(h, True, True, True)
+    unifier.Build()
+    h = unifier.Shape()
+    # Pre-mesh to speed up Boolean ops (tolerance ~1 mm)
+    BRepMesh_IncrementalMesh(h, 1.0)
+    return h
+
+hull = load_hull()
 
 if HEIGHTS_TO_DISPLAY:
     # Prepare a display
     display, start_display, add_menu, add_function_to_menu = init_display()
 
 # Iterate over pitch angles (outer) and heights (inner)
-for theta_deg in PITCHES_TO_CUT_AT:
+for pitch_i, theta_deg in enumerate(PITCHES_TO_CUT_AT):
+    if pitch_i > 0 and pitch_i % RELOAD_HULL_EVERY_N_PITCHES == 0:
+        print(f"[RELOAD] rebuilding hull from STEP after {pitch_i} pitch iterations")
+        hull = load_hull()
+
     theta_rad = np.deg2rad(theta_deg)
     # Geometry uses the negated angle: with +X as the rotation axis, +theta_rad here was
     # observed to dip the bow down - flipped so positive theta_deg raises the bow (matches
@@ -186,9 +196,9 @@ for theta_deg in PITCHES_TO_CUT_AT:
 # start_display()
 
 # Save results to CSV
-with open("buoyancy_results_heave_pitch.csv", "w", newline="") as f:
+with open("wtf.csv", "w", newline="") as f:
     writer = csv.DictWriter(f, fieldnames=results[0].keys())
     writer.writeheader()
     writer.writerows(results)
 
-print("[OK] Results saved to buoyancy_results_heave_pitch.csv")
+print("[OK] Results saved to wtf.csv")
