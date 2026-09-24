@@ -147,4 +147,7 @@ assert(size(r.deltas,1) == N);
 assert(size(r.delay_states,1) == N);
 assert(size(r.control,1) == N);
 % Save
-save("observer_controller_simulation_60s.mat", "r", "s", "-v7");
+save("validation/observer_controller_simulation_60s.mat", "r", "s", "-v7");
+
+%% SCOP file to RPI with 
+% scp "D:\Dane\workspace\dynamics-model-mini-celka\4DOF-HEAVE-ROLL-PITCH-AUGUMENTED\validation\observer_controller_simulation_60s.mat" "brzanpi@192.168.10.2:/home/brzanpi/ws_minicelka/rpi-controller-mini-celka/src/observers"
