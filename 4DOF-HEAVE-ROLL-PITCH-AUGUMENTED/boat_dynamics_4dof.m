@@ -219,17 +219,71 @@ function [ xdot, info ] = boat_dynamics_4dof(x, u, w, params) %#codegen
         F_R_B = [0; 0; 0];
     end
 
-    %% Model the buoyancy (simple for now)
-    % FB_up = buoyancy_force(zW, phi_BW, theta_BW, params);
-    LUT_z = params.buoyancy.LUT.z;
-    LUT_Fb = params.buoyancy.LUT.Fb;
-    LUT_V = params.buoyancy.LUT.V;
-    FB_up = interp1(LUT_z, LUT_Fb, zW, "pchip");
-    V_submerged = interp1(LUT_z, LUT_V, zW, "pchip");
+    %% Model the buoyancy
+    
+    % Default: no buoyancy moment for legacy 1D model
+    tau_B_B = zeros(3,1);
+    use_1d_model = params.buoyancy.use_1d_model;
+    use_1d_model = false;
+    if use_1d_model
+        % Legacy 1D buoyancy model
+        LUT_z  = params.buoyancy.LUT.z;
+        LUT_Fb = params.buoyancy.LUT.Fb;
+        FB_up = interp1(LUT_z, LUT_Fb, zW, "pchip");
+    else
+        % 2D heave-pitch buoyancy model
+        LUT_heave = params.buoyancy.LUT2.heave_m;
+        LUT_pitch = params.buoyancy.LUT2.pitch_rad;
+        % Keep interpolation inside LUT domain
+        zW_lut = min(max(zW, LUT_heave(1)), LUT_heave(end));
+        theta_lut = min(max(theta_BW, LUT_pitch(1)), LUT_pitch(end));
+        % Buoyancy force magnitude [N]
+        FB_up = interp2( ...
+            LUT_pitch, ...
+            LUT_heave, ...
+            params.buoyancy.LUT2.Fb, ...
+            theta_lut, ...
+            zW_lut, ...
+            "linear");
+        % Centre of buoyancy relative to COM in body frame
+        r_CoB_B = [
+            interp2( ...
+                LUT_pitch, LUT_heave, ...
+                params.buoyancy.LUT2.CoB_x_B, ...
+                theta_lut, zW_lut, "linear");
+            interp2( ...
+                LUT_pitch, LUT_heave, ...
+                params.buoyancy.LUT2.CoB_y_B, ...
+                theta_lut, zW_lut, "linear");
+            interp2( ...
+                LUT_pitch, LUT_heave, ...
+                params.buoyancy.LUT2.CoB_z_B, ...
+                theta_lut, zW_lut, "linear")
+        ];
+        % Buoyancy acts vertically upward in WORLD frame
+        F_B_W = [0; 0; -FB_up];
+        % Express buoyancy force in BODY frame for torque calculation
+        F_B_B = R_WB * F_B_W;
+        % Buoyancy restoring moment around COM
+        tau_B_B = cross(r_CoB_B, F_B_B);
+    end
+    % Infer submerged volume directly from buoyancy force:
+    % FB = rho * g * V
+    V_submerged = FB_up / (rho * g);
 
-    %%% maybe the added momentum from COB placement, that should handle that but...
-    %%% wow i do not think i will ever do this
-        % TODO: replace with proper 3D LUT including roll/pitch dependence
+    %% Hull heave damping.. that's hard actually 
+    V_ref = 0.0171;
+    b1 = 128;
+    if use_1d_model
+        % Preserve legacy damping behaviour
+        LUT_z = params.buoyancy.LUT.z;
+        LUT_V = params.buoyancy.LUT.V;
+        V_submerged_damping = interp1(LUT_z, LUT_V, zW, "pchip");
+    else
+        % In the 2D model displaced volume is inferred from buoyancy force
+        V_submerged_damping = V_submerged;
+    end
+    F_damp_z = -b1 * zWdot * V_submerged_damping / V_ref;
 
     %% Strut drag
     F_strut_FL_B = zeros(3,1);
@@ -275,7 +329,8 @@ function [ xdot, info ] = boat_dynamics_4dof(x, u, w, params) %#codegen
     tau_T_B  = cross(r_T_B,  F_T_B);
 
     tau_total_B = tau_FL_B + tau_FR_B + tau_R_B + tau_T_B + ...
-        tau_strut_FL_B + tau_strut_FR_B + tau_strut_R_B;
+        tau_strut_FL_B + tau_strut_FR_B + tau_strut_R_B + ...
+        tau_B_B;
 
     tau_total_B = tau_total_B + [tau_roll_dist; tau_pitch_dist; 0]; % Disturbance
 
@@ -296,13 +351,6 @@ function [ xdot, info ] = boat_dynamics_4dof(x, u, w, params) %#codegen
     Fz_up = -F_total_W(3);   % >0 means net upward force from foils+thrust
     
     Fz_up = Fz_up + F_z_dist; % Add heave disturbance
-
-    %% MODEL THE DISSIPATION FORCE!!!! that's hard actually 
-    F_damp_z = 0;
-    % Damping b1 * zW_dot * V/V_ref
-    V_ref = 0.0171;
-    b1 = 128;
-    F_damp_z = F_damp_z - b1*zWdot*V_submerged/V_ref;
 
     %% Added mass 
     % Maybe to be done
@@ -418,6 +466,20 @@ function [ xdot, info ] = boat_dynamics_4dof(x, u, w, params) %#codegen
         F_R_B(1);
 
         F_T_B(1); % 15
+
+        % New buoyancy/heave diagnostics 16:27
+        zW;                         % 16: heave position [m]
+        zWdot;                      % 17: heave velocity [m/s]
+        theta_BW;                   % 18: pitch angle [rad]
+        FB_up;                      % 19: buoyancy force, upward positive [N]
+        Fz_up;                      % 20: hydrofoil/strut vertical force, upward positive [N]
+        F_damp_z;                  % 21: damping term in NED equation [N]
+        m*g - Fz_up - FB_up + F_damp_z; % 22: net force, positive down [N]
+        zWddot;                    % 23: heave acceleration [m/s^2]
+        V_submerged_damping;       % 24: volume used for damping [m^3]
+        tau_B_B(1);                % 25: buoyancy roll moment [Nm]
+        tau_B_B(2);                % 26: buoyancy pitch moment [Nm]
+        FB_up - m*g;               % 27: buoyancy minus weight [N]
     ];
 end
 

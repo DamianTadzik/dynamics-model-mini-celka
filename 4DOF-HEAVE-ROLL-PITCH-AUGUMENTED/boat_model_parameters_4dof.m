@@ -21,11 +21,24 @@ function params = boat_model_parameters_4dof() %#codegen
     params.Iz_B = 0.49160107008109;  % [kg m^2]  yaw inertia
 
     %% Buoyancy LUT
-    data = load("..\BUOYANCY-CHARACTERIZATION\simple_buoyancy_LUT.mat");
+    % true  -> legacy 1D buoyancy model
+    % false -> 2D heave/pitch buoyancy model with CoB moment
+    params.buoyancy.use_1d_model = true;
 
+    % Legacy 1D LUT
+    data = load("..\BUOYANCY-CHARACTERIZATION\simple_buoyancy_LUT.mat");
     params.buoyancy.LUT.z = data.LUT_z;
     params.buoyancy.LUT.Fb = data.LUT_Fb;
     params.buoyancy.LUT.V = data.LUT_V;
+
+    % 2D heave/pitch LUT
+    data = load("..\BUOYANCY-CHARACTERIZATION\buoyancy_LUT_2d.mat");
+    params.buoyancy.LUT2.heave_m   = data.LUT_heave_m;
+    params.buoyancy.LUT2.pitch_rad = data.LUT_pitch_rad;
+    params.buoyancy.LUT2.Fb      = data.LUT_Fb;
+    params.buoyancy.LUT2.CoB_x_B = data.LUT_CoB_x_B;
+    params.buoyancy.LUT2.CoB_y_B = data.LUT_CoB_y_B;
+    params.buoyancy.LUT2.CoB_z_B = data.LUT_CoB_z_B;
 
     %% Hydrofoil placement
     params.hydrofoils.pos_front_left_B = [
