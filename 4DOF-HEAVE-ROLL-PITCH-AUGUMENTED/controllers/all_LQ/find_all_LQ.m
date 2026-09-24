@@ -103,12 +103,12 @@ function out = find_all_LQ(A, B, x0, u0)
     %% Set the weights and get the K for continouus LQR
     % Penalization for state error
     Q = diag([ ...
-        12000, ...   3   z       heave
+        20000, ...   3   z       heave
         10, ...      4   zdot    heave velocity
         2000, ...    5   phi     roll angle
         10, ...      6   theta   pitch angle
-        2000, ...    8   p       roll rate (body)
-        800, ...     9   q       pitch rate (body)
+        5000, ...    8   p       roll rate (body)
+        1000, ...     9   q       pitch rate (body)
         1000, ...    11  FL
         1000, ...    12  FR
         1000 ...     13  R
@@ -219,7 +219,7 @@ function out = find_all_LQ(A, B, x0, u0)
 
     Qi = diag([
         5e5, ...   % integral of z heave error
-        5e4, ...   % integral of phi roll error
+        5e5, ...   % integral of phi roll error
         5e2  ...   % integral of theta pitch error
     ]);
     

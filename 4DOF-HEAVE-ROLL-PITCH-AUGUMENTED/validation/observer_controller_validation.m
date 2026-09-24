@@ -103,8 +103,8 @@ ylabel("gps\_new");
 xlabel("Time [s]");
 title("GPS update signal");
 
-%% Save for python replay
-save("observer_replay_inputs.mat", "s", "-v7");
+% %% Save for python replay
+% save("observer_replay_inputs.mat", "s", "-v7");
 
 %% Also save expected observer/controller outputs from MATLAB
 
@@ -147,4 +147,4 @@ assert(size(r.deltas,1) == N);
 assert(size(r.delay_states,1) == N);
 assert(size(r.control,1) == N);
 % Save
-save("observer_controller_simulation.mat", "r", "-v7");
+save("observer_controller_simulation_60s.mat", "r", "s", "-v7");
