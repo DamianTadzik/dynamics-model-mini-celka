@@ -653,3 +653,153 @@ fprintf("Maximum relative u0 variation: %.2f %%\n", ...
     100*max(deltaU0_rel, [], "omitnan"));
 
 fprintf("=================================\n");
+
+
+
+%% MAGISTERKA - Dominant closed-loop eigenvalues
+
+Ts = 0.01;
+nominalVelocity_ms = 2.5;
+
+[~, j] = min(abs(xWdotGrid_ms - nominalVelocity_ms));
+
+lambda = controllers(j).closed_loop_eigenvalues_lqi;
+
+% Sort by magnitude, descending
+[~, idx] = sort(abs(lambda), 'descend');
+lambda = lambda(idx);
+
+% Equivalent continuous-time poles
+s = log(lambda) / Ts;
+
+% Equivalent time constants
+tau = -1 ./ real(s);
+
+fprintf('\nLQI at V = %.2f m/s\n', xWdotGrid_ms(j));
+
+T = table( ...
+    (1:numel(lambda))', ...
+    real(lambda), ...
+    imag(lambda), ...
+    abs(lambda), ...
+    real(s), ...
+    tau, ...
+    'VariableNames', { ...
+        'Index', 'RealLambda', 'ImagLambda', ...
+        'AbsLambda', 'RealS', 'Tau_s' ...
+    });
+
+disp(T(1:min(10,height(T)),:));
+
+
+
+%% MAGISTERKA - Inspect slowest LQI mode
+
+Ts = 0.01;
+nominalVelocity_ms = 2.5;
+
+[~, j] = min(abs(xWdotGrid_ms - nominalVelocity_ms));
+
+ctrl = controllers(j);
+
+Acl = ctrl.A_aug_lqi - ctrl.B_aug_lqi * ctrl.K_aug_lqi;
+
+% Eigenvalues and right eigenvectors
+[V, D] = eig(Acl);
+lambda = diag(D);
+
+% Find the slowest mode
+[~, idx] = max(abs(lambda));
+
+lambda_slow = lambda(idx);
+v = V(:,idx);
+
+fprintf('\nSlowest LQI mode at V = %.2f m/s\n', ...
+    xWdotGrid_ms(j));
+fprintf('lambda = %.8f %+.8fi\n', ...
+    real(lambda_slow), imag(lambda_slow));
+fprintf('tau = %.2f s\n', -Ts/log(abs(lambda_slow)));
+
+% State ordering from find_all_LQ.m
+stateNames = [
+    "z"
+    "zdot"
+    "phi"
+    "theta"
+    "p"
+    "q"
+    "delta_FL"
+    "delta_FR"
+    "delta_R"
+    compose("delay_%02d", (1:12)')
+    "int_z"
+    "int_phi"
+    "int_theta"
+];
+
+% Display physical and integral states only
+selected = [1:9, 22:24];
+
+T = table( ...
+    stateNames(selected), ...
+    abs(v(selected)), ...
+    'VariableNames', {'State', 'EigenvectorMagnitude'});
+
+disp(sortrows(T, 'EigenvectorMagnitude', 'descend'));
+
+% Inspect the integral components separately
+fprintf('\nIntegral-state components:\n');
+disp(table( ...
+    stateNames(22:24), ...
+    abs(v(22:24)), ...
+    'VariableNames', {'State', 'Magnitude'}));
+
+
+%% MAGISTERKA - LQI closed-loop poles in the z-plane
+
+nominalVelocity_ms = 2.5;
+[~, j] = min(abs(xWdotGrid_ms - nominalVelocity_ms));
+
+lambda_lqi = controllers(j).closed_loop_eigenvalues_lqi;
+
+t = linspace(0, 2*pi, 500);
+xc = cos(t);
+yc = sin(t);
+
+f = figure('Name','closed_loop_poles_lqi_zplane','Units','centimeters','Position',[2 2 16 5]);
+hold on;
+grid on;
+box on;
+axis equal;
+
+plot(xc, yc, 'k--', 'LineWidth', 1.2);   % unit circle
+plot(real(lambda_lqi), imag(lambda_lqi), ...
+    '*', 'LineWidth', 1.5, 'MarkerSize', 4);
+
+xlabel('Real part','FontName','Times New Roman','FontSize',9);
+ylabel('Imaginary part','FontName','Times New Roman','FontSize',9);
+% title(sprintf('Closed-loop LQI poles at $V = %.2f$ m/s', nominalVelocity_ms), ...
+%     'Interpreter', 'latex');
+
+% xlim([-1.1 1.1]);
+% ylim([-1.1 1.1]);
+xlim([-0.02 1.02]);
+ylim([-0.16 0.16]);
+
+set(gca,'FontName','Times New Roman');
+set(gca,'FontSize',9);
+exportgraphics(f, 'closed_loop_poles_lqi_zplane.pdf', ...
+    'ContentType', 'vector', ...
+    'BackgroundColor', 'none', ...
+    'Units', 'centimeters', ...
+    'Width', 16, ...
+    'Height', 5);
+
+% % plot(time, vals, '.'); hold on; grid on;
+% plot(controller_time, controller_vals, '.', 'MarkerSize', 1);
+% xlabel('Time [s]','FontName','Times New Roman','FontSize',9);
+% ylabel('Requested angle [{\circ}]','FontName','Times New Roman','FontSize',9);
+% grid on;
+% set(gca,'FontName','Times New Roman');
+% set(gca,'FontSize',9);
+% xlim([controller_time(1) controller_time(end)]);
