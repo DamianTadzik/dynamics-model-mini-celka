@@ -51,7 +51,7 @@ function [ gyro_vector, accel_vector, distance_vector, gps_speed ] = boat_measur
     
     %% Accel
     % Accel output is in g not m/s^2
-    accel_mps_W = [xdot(2); xdot(3); xdot(4)+params.g]; 
+    accel_mps_W = [-xdot(2); 0; -xdot(4)+params.g]; 
 
     % Since accelerometer is mounted in the _B frame we need to transform
     accel_mps_B = R_WB * accel_mps_W;

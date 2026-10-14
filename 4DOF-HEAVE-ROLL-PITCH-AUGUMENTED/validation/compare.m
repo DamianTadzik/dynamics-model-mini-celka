@@ -82,7 +82,9 @@ xlim([0 t_end]);
 %% Figure 2 - Heave and heave velocity
 figure;
 sgtitle("Heave estimator comparison");
-subplot(2,1,1);
+ax = [];
+
+ax(end+1) = subplot(2,1,1);
 hold on;
 grid on;
 plot(t_mat, z_mat, 'LineWidth', 1.5);
@@ -92,7 +94,7 @@ title("Heave position");
 legend("MATLAB", "Python", 'Location', 'best');
 xlim([0 t_end]);
 
-subplot(2,1,2);
+ax(end+1) = subplot(2,1,2);
 hold on;
 grid on;
 plot(t_mat, zdot_mat, 'LineWidth', 1.5);
@@ -102,10 +104,14 @@ ylabel("dz/dt [m/s]");
 title("Heave velocity");
 xlim([0 t_end]);
 
+linkaxes(ax, 'x');
+
 %% Figure 3 - Body angular rates
 figure;
 sgtitle("Body angular-rate comparison");
-subplot(3,1,1);
+ax = [];
+
+ax(end+1) = subplot(3,1,1);
 hold on;
 grid on;
 plot(t_mat, p_mat, 'LineWidth', 1.5);
@@ -115,7 +121,7 @@ title("Roll rate");
 legend("MATLAB", "Python", 'Location', 'best');
 xlim([0 t_end]);
 
-subplot(3,1,2);
+ax(end+1) = subplot(3,1,2);
 hold on;
 grid on;
 plot(t_mat, q_mat, 'LineWidth', 1.5);
@@ -124,7 +130,7 @@ ylabel("q [rad/s]");
 title("Pitch rate");
 xlim([0 t_end]);
 
-subplot(3,1,3);
+ax(end+1) = subplot(3,1,3);
 hold on;
 grid on;
 plot(t_mat, r_mat, 'LineWidth', 1.5);
@@ -134,10 +140,14 @@ ylabel("r [rad/s]");
 title("Yaw rate");
 xlim([0 t_end]);
 
+linkaxes(ax, 'x');
+
 %% Figure 4 - Attitude
 figure;
 sgtitle("Attitude comparison");
-subplot(3,1,1);
+ax = [];
+
+ax(end+1) = subplot(3,1,1);
 hold on;
 grid on;
 plot(t_mat, phi_mat, 'LineWidth', 1.5);
@@ -147,7 +157,7 @@ title("Roll angle");
 legend("MATLAB", "Python", 'Location', 'best');
 xlim([0 t_end]);
 
-subplot(3,1,2);
+ax(end+1) = subplot(3,1,2);
 hold on;
 grid on;
 plot(t_mat, theta_mat, 'LineWidth', 1.5);
@@ -156,7 +166,7 @@ ylabel("theta [rad]");
 title("Pitch angle");
 xlim([0 t_end]);
 
-subplot(3,1,3);
+ax(end+1) = subplot(3,1,3);
 hold on;
 grid on;
 plot(t_mat, psi_mat, 'LineWidth', 1.5);
@@ -165,6 +175,8 @@ xlabel("Time [s]");
 ylabel("psi [rad]");
 title("Yaw angle");
 xlim([0 t_end]);
+
+linkaxes(ax, 'x');
 
 %% Compare sample time diff(t)
 dt_mat = diff(t_mat);
@@ -224,7 +236,9 @@ t_act_end = min(t_act_mat(end), t_act_python(end));
 % Plot estimated actuator states
 figure;
 sgtitle("Actuator estimator comparison");
-subplot(3,1,1);
+ax = [];
+
+ax(end+1) = subplot(3,1,1);
 hold on;
 grid on;
 plot(t_act_mat, delta_FL_mat, 'LineWidth', 1.5);
@@ -234,7 +248,7 @@ title("Front-left estimated actuator state");
 legend("MATLAB", "Python", 'Location', 'best');
 xlim([0 t_act_end]);
 
-subplot(3,1,2);
+ax(end+1) = subplot(3,1,2);
 hold on;
 grid on;
 plot(t_act_mat, delta_FR_mat, 'LineWidth', 1.5);
@@ -243,7 +257,7 @@ ylabel("\delta_{FR} [deg]");
 title("Front-right estimated actuator state");
 xlim([0 t_act_end]);
 
-subplot(3,1,3);
+ax(end+1) = subplot(3,1,3);
 hold on;
 grid on;
 plot(t_act_mat, delta_R_mat, 'LineWidth', 1.5);
@@ -253,6 +267,8 @@ ylabel("\delta_R [deg]");
 title("Rear estimated actuator state");
 xlim([0 t_act_end]);
 
+linkaxes(ax, 'x');
+
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Actuator estimator - actuator feedback comparison
 
@@ -261,36 +277,28 @@ t_hw = P.can_timestamp_s;
 
 raw_FL = P.("can_signals_ACTUATOR_LEFT_FOIL_FEEDBACK_POSITION_RAW");
 raw_FR = P.("can_signals_ACTUATOR_RIGHT_FOIL_FEEDBACK_POSITION_RAW");
-% raw_R  = P.("can_signals_ACTUATOR_REAR_FOIL_FEEDBACK_POSITION_RAW");
+raw_R  = P.("can_signals_ACTUATOR_REAR_FOIL_FEEDBACK_POSITION_RAW");
 
-% ==============================================================
-% TODO: ADC -> foil incidence angle calibration
-% delta_deg = k * raw + b
-% Use negative k for an inverted sensor direction.
-% ==============================================================
-k_FL = 1.0;  b_FL = -2160;
-k_FR = 1.0;  b_FR = -1950;
-k_R  = 1.0;  b_R  = 0.0;
-
-delta_FL_hw = k_FL .* raw_FL + b_FL;
-delta_FR_hw = k_FR .* raw_FR + b_FR;
-% delta_R_hw  = k_R  .* raw_R  + b_R;
+% RAW -> [-6, +12] deg
+delta_FL_hw = -6 + (2182 - raw_FL) .* ((6+9.74) / (2182 - 1670));
+delta_FR_hw = -3.699 + (raw_FR - 1976) .* ((3.699+12) / (2516 - 1976));
+delta_R_hw  = -6 + (2153 - raw_R) .* (18 / (2153 - 1606));
 
 % Keep only actual CAN feedback samples
 idx_FL = ~isnan(t_hw) & ~isnan(raw_FL);
 idx_FR = ~isnan(t_hw) & ~isnan(raw_FR);
-% idx_R  = ~isnan(t_hw) & ~isnan(raw_R);
+idx_R  = ~isnan(t_hw) & ~isnan(raw_R);
 
 % Align hardware time with the beginning of the Python control log
 t0 = min(P.timestamp_s(~isnan(P.("control_cycle_estimated_state_delta_FL_deg"))));
 
 t_FL_hw = t_hw(idx_FL) - t0;
 t_FR_hw = t_hw(idx_FR) - t0;
-% t_R_hw  = t_hw(idx_R)  - t0;
+t_R_hw  = t_hw(idx_R)  - t0;
 
 delta_FL_hw = delta_FL_hw(idx_FL);
 delta_FR_hw = delta_FR_hw(idx_FR);
-% delta_R_hw  = delta_R_hw(idx_R);
+delta_R_hw  = delta_R_hw(idx_R);
 
 % Add hardware feedback to the previous actuator-estimator figure
 subplot(3,1,1);
@@ -304,10 +312,10 @@ plot(t_FR_hw, delta_FR_hw, ':', ...
     'LineWidth', 1.5, ...
     'Color', [0.9290 0.6940 0.1250]);
 
-% subplot(3,1,3);
-% plot(t_R_hw, delta_R_hw, ':', ...
-%     'LineWidth', 1.5, ...
-%     'Color', [0.9290 0.6940 0.1250]);
+subplot(3,1,3);
+plot(t_R_hw, delta_R_hw, ':', ...
+    'LineWidth', 1.5, ...
+    'Color', [0.9290 0.6940 0.1250]);
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Controller comparison
@@ -347,7 +355,9 @@ t_ctrl_python = t_ctrl_python - t_ctrl_python(1);
 %% Plot controller outputs
 figure;
 sgtitle("Controller output comparison");
-subplot(3,1,1);
+ax = [];
+
+ax(end+1) = subplot(3,1,1);
 hold on;
 grid on;
 plot(t_ctrl_mat, u_FL_mat, 'LineWidth', 1.5);
@@ -357,7 +367,7 @@ title("Front-left actuator command");
 legend("MATLAB", "Python", 'Location', 'best');
 xlim([0 min(t_ctrl_mat(end), t_ctrl_python(end))]);
 
-subplot(3,1,2);
+ax(end+1) = subplot(3,1,2);
 hold on;
 grid on;
 plot(t_ctrl_mat, u_FR_mat, 'LineWidth', 1.5);
@@ -366,7 +376,7 @@ ylabel("FR [deg]");
 title("Front-right actuator command");
 xlim([0 min(t_ctrl_mat(end), t_ctrl_python(end))]);
 
-subplot(3,1,3);
+ax(end+1) = subplot(3,1,3);
 hold on;
 grid on;
 plot(t_ctrl_mat, u_R_mat, 'LineWidth', 1.5);
@@ -375,6 +385,8 @@ xlabel("Time [s]");
 ylabel("Rear [deg]");
 title("Rear actuator command");
 xlim([0 min(t_ctrl_mat(end), t_ctrl_python(end))]);
+
+linkaxes(ax, 'x');
 
 %% Controller timing comparison
 dt_ctrl_mat = diff(t_ctrl_mat);

@@ -4,3 +4,4 @@
 *.mexw64
 SENSORS-CHARACTERIZATION/data/Copy_of_log4.parquet
 /cenv/
+SENSORS-CHARACTERIZATION/tof_gating/log2.parquet

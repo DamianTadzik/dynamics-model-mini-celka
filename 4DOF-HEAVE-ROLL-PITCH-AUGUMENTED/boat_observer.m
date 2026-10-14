@@ -67,7 +67,7 @@ function [x_hat, info] = boat_observer(gyro, accel, tof, tof_status, params) %#c
     % compute vertical accel input a_z (m/s^2)
     aB = accel * g;
     aW = quat_rotate(quat, aB);    
-    a_z = aW(3) - g; % NED +down
+    a_z = -aW(3) + g; % NED +down
     
     % KF predict with accel input and bias
     A = [1 Ts -0.5*Ts^2;

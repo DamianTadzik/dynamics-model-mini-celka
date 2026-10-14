@@ -32,7 +32,7 @@ function velocity = boat_velocity_estimator(accel, phi, theta, gps_speed, gps_ne
     aB = accel * g;
     aW = R_BW * aB;
 
-    ax = aW(1);
+    ax = -aW(1);
 
     % Prediction
     % x = [v; bias]
