@@ -109,9 +109,9 @@ function out = find_all_LQ(A, B, x0, u0)
         10, ...      6   theta   pitch angle
         5000, ...    8   p       roll rate (body)
         1000, ...     9   q       pitch rate (body)
-        1000, ...    11  FL
-        1000, ...    12  FR
-        1000 ...     13  R
+        1, ...    11  FL
+        1, ...    12  FR
+        1 ...     13  R
         ]); 
     % Penalization for actuation
     R = diag([ ...
