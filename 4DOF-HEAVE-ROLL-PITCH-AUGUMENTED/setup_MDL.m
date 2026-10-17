@@ -21,6 +21,8 @@ busInfo_ctrl = Simulink.Bus.createObject(ctrl_params);   % Create the bus object
 ctrl_params_bus = eval(busInfo_ctrl.busName);
 % For python
 save('boat_controller_parameters.mat', 'ctrl_params', '-v7');
+% use scp for moving it to RPI to /home/brzanpi/ws_minicelka/rpi-controller-mini-celka/src/observers/boat_controller_parameters.mat
+% scp "D:\Dane\workspace\dynamics-model-mini-celka\4DOF-HEAVE-ROLL-PITCH-AUGUMENTED\boat_controller_parameters.mat" "brzanpi@192.168.10.2:/home/brzanpi/ws_minicelka/rpi-controller-mini-celka/src/observers/"
 
 % TODO: Create parameter set like sampling time etc... solver... tsim
 Ts_sim = 0.001; 

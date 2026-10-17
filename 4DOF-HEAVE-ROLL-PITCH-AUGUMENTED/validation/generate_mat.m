@@ -131,7 +131,7 @@ r.delay_states = squeeze(d.signals.values).';
 % Controller output
 c = out.control;
 % [FL FR R]
-r.control = squeeze(c.signals.values).';
+r.control = squeeze(c.signals.values);
 % Verify dimensions
 disp("Expected output dimensions:");
 fprintf("time:         %s\n", mat2str(size(r.time)));
@@ -151,3 +151,12 @@ save("validation/observer_controller_simulation_60s.mat", "r", "s", "-v7");
 
 %% SCOP file to RPI with 
 % scp "D:\Dane\workspace\dynamics-model-mini-celka\4DOF-HEAVE-ROLL-PITCH-AUGUMENTED\validation\observer_controller_simulation_60s.mat" "brzanpi@192.168.10.2:/home/brzanpi/ws_minicelka/rpi-controller-mini-celka/src/observers"
+
+f = figure('Name','PIL_observer','Units','centimeters','Position',[2 2 16 8]);
+
+
+
+
+
+ff = figure('Name','PIL_controller_actuators','Units','centimeters','Position',[2 2 16 8]);
+

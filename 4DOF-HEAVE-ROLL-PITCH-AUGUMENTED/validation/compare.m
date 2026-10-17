@@ -1,5 +1,6 @@
 %% Files
-parquetFile = "validation/log0.parquet";
+% parquetFile = "validation/log0.parquet";
+parquetFile = "D:\Dane\workspace\logs-mini-celka\logs_storage\2026_10_17_home\logs_parquet\log1.parquet"
 matFile     = "validation/observer_controller_simulation_60s.mat";
 
 %% Load Python runtime log
@@ -280,9 +281,10 @@ raw_FR = P.("can_signals_ACTUATOR_RIGHT_FOIL_FEEDBACK_POSITION_RAW");
 raw_R  = P.("can_signals_ACTUATOR_REAR_FOIL_FEEDBACK_POSITION_RAW");
 
 % RAW -> [-6, +12] deg
-delta_FL_hw = -6 + (2182 - raw_FL) .* ((6+9.74) / (2182 - 1670));
-delta_FR_hw = -3.699 + (raw_FR - 1976) .* ((3.699+12) / (2516 - 1976));
-delta_R_hw  = -6 + (2153 - raw_R) .* (18 / (2153 - 1606));
+hehe = 10;
+delta_FL_hw = -6 + (2182+hehe - raw_FL) .* ((6+9.74) / (2182+hehe - 1670));
+delta_FR_hw = -3.699 + (raw_FR - 1976+hehe) .* ((3.699+12) / (2516 - 1976+hehe));
+delta_R_hw  = -6 + (2212 - raw_R) .* (18 / (2212 - 1770));
 
 % Keep only actual CAN feedback samples
 idx_FL = ~isnan(t_hw) & ~isnan(raw_FL);
@@ -408,3 +410,176 @@ legend( ...
     'Location', 'best' ...
 );
 xlim([0 min(t_ctrl_mat(end), t_ctrl_python(end))]);
+
+
+%% SCOP file to RPI with 
+% scp "D:\Dane\workspace\dynamics-model-mini-celka\4DOF-HEAVE-ROLL-PITCH-AUGUMENTED\validation\observer_controller_simulation_60s.mat" "brzanpi@192.168.10.2:/home/brzanpi/ws_minicelka/rpi-controller-mini-celka/src/observers"
+
+
+%% PIL observer comparison figures
+
+f1 = figure('Name','PIL_observer_xdot','Units','centimeters','Position',[2 2 8 4.5]);
+hold on; grid on;
+plot(t_mat, v_mat, 'LineWidth', 1.5);
+plot(t_python, v_python, '--', 'LineWidth', 1.2);
+xlabel('Time [s]','FontName','Times New Roman','FontSize',9);
+ylabel('ẋ_W [m/s]','FontName','Times New Roman','FontSize',9);
+legend('MATLAB','Python','Location','best','FontName','Times New Roman','FontSize',9);
+set(gca,'FontName','Times New Roman','FontSize',9);
+xlim([0 20]);
+
+f2 = figure('Name','PIL_observer_z','Units','centimeters','Position',[2 2 8 4.5]);
+hold on; grid on;
+plot(t_mat, z_mat, 'LineWidth', 1.5);
+plot(t_python, z_python, '--', 'LineWidth', 1.2);
+xlabel('Time [s]','FontName','Times New Roman','FontSize',9);
+ylabel('z_W [m]','FontName','Times New Roman','FontSize',9);
+legend('MATLAB','Python','Location','best','FontName','Times New Roman','FontSize',9);
+set(gca,'FontName','Times New Roman','FontSize',9);
+xlim([0 20]);
+
+f3 = figure('Name','PIL_observer_phi','Units','centimeters','Position',[2 2 8 4.5]);
+hold on; grid on;
+plot(t_mat, phi_mat, 'LineWidth', 1.5);
+plot(t_python, phi_python, '--', 'LineWidth', 1.2);
+xlabel('Time [s]','FontName','Times New Roman','FontSize',9);
+ylabel('\phi [rad]','FontName','Times New Roman','FontSize',9);
+legend('MATLAB','Python','Location','best','FontName','Times New Roman','FontSize',9);
+set(gca,'FontName','Times New Roman','FontSize',9);
+xlim([0 20]);
+
+f4 = figure('Name','PIL_observer_p','Units','centimeters','Position',[2 2 8 4.5]);
+hold on; grid on;
+plot(t_mat, p_mat, 'LineWidth', 1.5);
+plot(t_python, p_python, '--', 'LineWidth', 1.2);
+xlabel('Time [s]','FontName','Times New Roman','FontSize',9);
+ylabel('p [rad/s]','FontName','Times New Roman','FontSize',9);
+legend('MATLAB','Python','Location','best','FontName','Times New Roman','FontSize',9);
+set(gca,'FontName','Times New Roman','FontSize',9);
+xlim([0 20]);
+
+exportgraphics(f1, 'validation/PIL_observer_xdot.pdf', ...
+    'ContentType', 'vector', 'BackgroundColor', 'none', ...
+    'Units', 'centimeters', 'Width', 8, 'Height', 4.5);
+exportgraphics(f2, 'validation/PIL_observer_z.pdf', ...
+    'ContentType', 'vector', 'BackgroundColor', 'none', ...
+    'Units', 'centimeters', 'Width', 8, 'Height', 4.5);
+exportgraphics(f3, 'validation/PIL_observer_phi.pdf', ...
+    'ContentType', 'vector', 'BackgroundColor', 'none', ...
+    'Units', 'centimeters', 'Width', 8, 'Height', 4.5);
+exportgraphics(f4, 'validation/PIL_observer_p.pdf', ...
+    'ContentType', 'vector', 'BackgroundColor', 'none', ...
+    'Units', 'centimeters', 'Width', 8, 'Height', 4.5);
+
+
+%% Actuator comparison figures: MATLAB vs Python vs Hardware
+
+ff1 = figure('Name','PIL_controller_actuators_FL','Units','centimeters','Position',[2 2 16 4.5]);
+hold on; grid on;
+plot(t_act_mat,    delta_FL_mat,    'LineWidth', .8);
+plot(t_act_python, delta_FL_python, '--', 'LineWidth', .8);
+plot(t_FL_hw,      delta_FL_hw,     ':', 'LineWidth', .4, 'Color', [0.9290 0.6940 0.1250 0.6]);
+xlabel('Time [s]','FontName','Times New Roman','FontSize',9);
+ylabel('\delta_{FL} [deg]','FontName','Times New Roman','FontSize',9);
+legend('MATLAB','Python','Hardware', ...
+    'Location','southwest', ...
+    'FontName','Times New Roman','FontSize',9);
+set(gca,'FontName','Times New Roman');
+set(gca,'FontSize',9);
+xlim([20 60]);
+ylim([0 5]);
+
+ff2 = figure('Name','PIL_controller_actuators_FR','Units','centimeters','Position',[2 2 16 4.5]);
+hold on; grid on;
+plot(t_act_mat,    delta_FR_mat,    'LineWidth', .8);
+plot(t_act_python, delta_FR_python, '--', 'LineWidth', .8);
+plot(t_FR_hw,      delta_FR_hw,     ':', 'LineWidth', .4, 'Color', [0.9290 0.6940 0.1250 0.6]);
+xlabel('Time [s]','FontName','Times New Roman','FontSize',9);
+ylabel('\delta_{FR} [deg]','FontName','Times New Roman','FontSize',9);
+legend('MATLAB','Python','Hardware', ...
+    'Location','southwest', ...
+    'FontName','Times New Roman','FontSize',9);
+set(gca,'FontName','Times New Roman');
+set(gca,'FontSize',9);
+xlim([20 60]);
+ylim([.8 4.8]);
+
+exportgraphics(ff1, 'validation/PIL_controller_actuators_FL.pdf', ...
+    'ContentType', 'vector', 'BackgroundColor', 'none', ...
+    'Units', 'centimeters', 'Width', 16, 'Height', 4.5);
+
+exportgraphics(ff2, 'validation/PIL_controller_actuators_FR.pdf', ...
+    'ContentType', 'vector', 'BackgroundColor', 'none', ...
+    'Units', 'centimeters', 'Width', 16, 'Height', 4.5);
+
+
+
+%% PIL real-time execution performance
+
+% Control loop timing data
+t_ns = P.("control_cycle_timestamp_monotonic_ns");
+exec_ns = P.("control_cycle_execution_ns");
+late_ns = P.("control_cycle_lateness_ns");
+
+idx = ~isnan(t_ns) & ~isnan(exec_ns) & ~isnan(late_ns);
+
+t_ns = double(t_ns(idx));
+exec_ms = double(exec_ns(idx)) / 1e6;
+late_ms = double(late_ns(idx)) / 1e6;
+
+% Actual sampling interval
+t = (t_ns - t_ns(1)) / 1e9;
+dt_ms = diff(t_ns) / 1e6;
+t_dt = t(2:end);
+
+Ts_ms = 10;
+
+% Statistics
+fprintf('\n--- Control loop timing statistics ---\n');
+fprintf('Mean sampling interval: %.4f ms\n', mean(dt_ms));
+fprintf('Std sampling interval:  %.4f ms\n', std(dt_ms));
+fprintf('99th percentile:        %.4f ms\n', prctile(dt_ms,99));
+fprintf('Max sampling interval:  %.4f ms\n', max(dt_ms));
+fprintf('Intervals > 10 ms:      %.2f %%\n', 100*mean(dt_ms > Ts_ms));
+fprintf('Mean execution time:    %.4f ms\n', mean(exec_ms));
+fprintf('Max execution time:     %.4f ms\n', max(exec_ms));
+fprintf('Mean lateness:          %.4f ms\n', mean(late_ms));
+fprintf('Max lateness:           %.4f ms\n', max(late_ms));
+
+% Figure 1 - Sampling interval over time
+fff1 = figure('Name','PIL_timing', ...
+    'Units','centimeters','Position',[2 2 8 6]);
+
+hold on; grid on;
+plot(t_dt, dt_ms, 'LineWidth', 0.8);
+yline(Ts_ms, '--', 'Nominal 10 ms', 'LineWidth', 1);
+
+xlabel('Time [s]', ...
+    'FontName','Times New Roman','FontSize',9);
+ylabel('Sampling interval [ms]', ...
+    'FontName','Times New Roman','FontSize',9);
+set(gca,'FontName','Times New Roman','FontSize',9);
+xlim([0 t_dt(end)]);
+
+% Figure 2 - Sampling interval histogram
+fff2 = figure('Name','PIL_timing_hist', ...
+    'Units','centimeters','Position',[2 2 8 6]);
+
+hold on; grid on;
+histogram(dt_ms, 'BinWidth', 0.001, ...
+    'Normalization','probability');
+xline(Ts_ms, '--', 'Nominal 10 ms', 'LineWidth', 1);
+
+xlabel('Sampling interval [ms]', ...
+    'FontName','Times New Roman','FontSize',9);
+ylabel('Probability', ...
+    'FontName','Times New Roman','FontSize',9);
+set(gca,'FontName','Times New Roman','FontSize',9);
+
+% Export
+exportgraphics(fff1, 'PIL_timing.pdf', ...
+    'ContentType','vector', 'BackgroundColor','none', ...
+    'Units','centimeters', 'Width',8, 'Height',6);
+exportgraphics(fff2, 'PIL_timing_hist.pdf', ...
+    'ContentType','vector', 'BackgroundColor','none', ...
+    'Units','centimeters', 'Width',8, 'Height',6);
