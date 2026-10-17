@@ -1,6 +1,6 @@
 %% Save simout out ot .mat
 % save("controllers/performance_setpoint_tracking.mat", "out")
-load("controllers\performance_setpoint_tracking.mat")
+% load("controllers\performance_setpoint_tracking.mat")
 
 %% Load data from simout
 

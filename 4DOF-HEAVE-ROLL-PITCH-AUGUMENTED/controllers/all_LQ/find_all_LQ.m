@@ -115,10 +115,10 @@ function out = find_all_LQ(A, B, x0, u0)
         ]); 
     % Penalization for actuation
     R = diag([ ...
-        .1, ...      FL
-        .1, ...      FR
-        10 ...      R
-        ] .*  100);
+        1, ...      FL
+        1, ...      FR
+        20 ...      R
+        ]);
     
     K = lqr(Ar,Br,Q,R);
     
