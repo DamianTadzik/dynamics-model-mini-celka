@@ -1,7 +1,9 @@
 %% Files
 % parquetFile = "validation/log0.parquet";
 parquetFile = "D:\Dane\workspace\logs-mini-celka\logs_storage\2026_10_17_home\logs_parquet\log1.parquet"
+parquetFile = "D:\Dane\workspace\logs-mini-celka\logs_storage\2026_10_27_home\logs_parquet\log5.parquet"
 matFile     = "validation/observer_controller_simulation_60s.mat";
+matFile     = "validation/observer_controller_simulation_60s_MPC.mat";
 
 %% Load Python runtime log
 P = parquetread(parquetFile);

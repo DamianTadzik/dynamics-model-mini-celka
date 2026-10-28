@@ -67,5 +67,39 @@ function params = boat_controller_parameters()
     % Scheduled trim point
     params.controller.LQ.x0aug_grid = data.x0aug_grid;
     params.controller.LQ.u0_grid    = data.u0_grid;
+
+
+    %% MPC gain scheduling parameters
+    data = load("all_MPC_grid_schedule.mat");
+
+    params.controller.MPC.velocity_grid = data.velocity_grid;
+
+    % Scheduled discrete-time plant model
+    params.controller.MPC.Aaug_grid = data.Aaug_grid;
+    params.controller.MPC.Baug_grid = data.Baug_grid;
+    params.controller.MPC.C = data.C;
+    params.controller.MPC.D = data.D;
+
+    % Scheduled operating points
+    params.controller.MPC.x0aug_grid = data.x0aug_grid;
+    params.controller.MPC.u0_grid = data.u0_grid;
+
+    % MPC configuration
+    params.controller.MPC.Ts = data.Ts;
+    params.controller.MPC.Ld = data.Ld;
+    params.controller.MPC.Np = data.Np;
+    params.controller.MPC.Nc = data.Nc;
+
+    params.controller.MPC.nominal_zW_m = data.nominal_zW_m;
+    params.controller.MPC.nominal_velocity_ms = data.nominal_velocity_ms;
+
+    % MPC weights
+    params.controller.MPC.Wy  = [10 10 10];
+    params.controller.MPC.Wu  = [0 0 0];
+    params.controller.MPC.Wdu = [0.1 0.1 0.1];
+    
+    % Absolute actuator constraints [deg]
+    params.controller.MPC.u_min = [-6; -6; -6];
+    params.controller.MPC.u_max = [12; 12; 12];
     
 end
