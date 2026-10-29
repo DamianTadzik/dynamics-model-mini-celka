@@ -70,8 +70,10 @@ fprintf('99th percentile:        %.4f ms\n', prctile(dt_ms,99));
 fprintf('Max sampling interval:  %.4f ms\n', max(dt_ms));
 fprintf('Intervals > 10 ms:      %.2f %%\n', 100*mean(dt_ms > Ts_ms));
 fprintf('Mean execution time:    %.4f ms\n', mean(exec_ms));
+fprintf('Std execution time:     %.4f ms\n', std(exec_ms));
 fprintf('Max execution time:     %.4f ms\n', max(exec_ms));
 fprintf('Mean lateness:          %.4f ms\n', mean(late_ms));
+fprintf('Std lateness:           %.4f ms\n', std(late_ms));
 fprintf('Max lateness:           %.4f ms\n', max(late_ms));
 
 % Figure 1 - Sampling interval over time
@@ -113,6 +115,35 @@ exportgraphics(fff2, 'validation/PIL_timing_hist.pdf', ...
     'ContentType','vector', 'BackgroundColor','none', ...
     'Units','centimeters', 'Width',8, 'Height',4.5);
 
+%% Control loop completion timing
+
+% Completion time relative to scheduled cycle start
+finish_ms = late_ms + exec_ms;
+
+% Interval between consecutive cycle completions
+finish_dt_ms = dt_ms + diff(exec_ms);
+
+fprintf('\n--- Control loop completion statistics ---\n');
+fprintf('Mean finish offset:   %.4f ms\n', mean(finish_ms));
+fprintf('Std finish offset:    %.4f ms\n', std(finish_ms));
+fprintf('Min finish offset:    %.4f ms\n', min(finish_ms));
+fprintf('Max finish offset:    %.4f ms\n', max(finish_ms)); % 6.6806
+fprintf('99th percentile:      %.4f ms\n', prctile(finish_ms,99));
+
+fprintf('\n--- Completion-to-completion intervals ---\n');
+fprintf('Mean interval:        %.4f ms\n', mean(finish_dt_ms));
+fprintf('Std interval:         %.4f ms\n', std(finish_dt_ms));
+
+fprintf('Max completion interval: %.4f ms\n', max(finish_dt_ms));
+fprintf('99th completion interval: %.4f ms\n', prctile(finish_dt_ms,99));
+
+% Histogram
+figure;
+histogram(finish_ms, 'BinWidth', 0.1);
+grid on;
+xline(Ts_ms, '--', '10 ms deadline');
+xlabel('Completion time relative to scheduled tick [ms]');
+ylabel('Count');
 
 %% Normality test - Jarque-Bera
 [h, p] = jbtest(dt_ms, 0.05);
