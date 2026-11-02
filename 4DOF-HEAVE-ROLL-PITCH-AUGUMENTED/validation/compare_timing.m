@@ -156,3 +156,21 @@ figure;
 qqplot(dt_ms);
 grid on;
 title('Sampling interval - Normal Q-Q plot');
+
+%% Verify completion interval calculations
+
+finish_t_ms = (t_ns - t_ns(1))/1e6 + exec_ms;
+
+finish_dt_direct_ms = diff(finish_t_ms);
+finish_dt_formula_ms = dt_ms + diff(exec_ms);
+
+fprintf('Max calculation difference: %.8f ms\n', ...
+    max(abs(finish_dt_direct_ms - finish_dt_formula_ms)));
+
+% Correlation between start interval jitter and execution time changes
+fprintf('Correlation (start jitter vs execution change): %.4f\n', ...
+    corr(dt_ms - Ts_ms, diff(exec_ms)));
+
+% Correlation between start lateness and execution time
+fprintf('Correlation (lateness vs execution): %.4f\n', ...
+    corr(late_ms, exec_ms));
