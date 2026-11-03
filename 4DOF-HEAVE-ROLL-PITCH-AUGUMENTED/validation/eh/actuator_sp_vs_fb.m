@@ -1,7 +1,9 @@
 clear; clc;
 %% Files
 parquetFile = "D:\Dane\workspace\logs-mini-celka\logs_storage\2026_10_28_divonnes\logs_parquet\log0.parquet" % LQ
-xlims = [336 364];
+% xlims = [336 358]; % 22
+% xlims = [363 385]; % 22
+xlims = [336 385]; % OBA
 
 % parquetFile = "D:\Dane\workspace\logs-mini-celka\logs_storage\2026_10_28_divonnes\logs_parquet\log1.parquet" % MPC / LQ
 % parquetFile = "D:\Dane\workspace\logs-mini-celka\logs_storage\2026_10_28_divonnes\logs_parquet\log3.parquet" % MPCi / LQ
@@ -16,7 +18,7 @@ xlims = [336 364];
 P = parquetread(parquetFile);
 disp("Parquet columns:");
 disp(P.Properties.VariableNames.');
-xlims = [P.timestamp_s(1) P.timestamp_s(end)] - P.timestamp_s(1);
+% % xlims = [P.timestamp_s(1) P.timestamp_s(end)] - P.timestamp_s(1);
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Python observer from Parquet
@@ -295,19 +297,31 @@ idx = ~isnan(radio_steering) & ~isnan(t_radio_steering);
 t_radio_steering = t_radio_steering(idx) - t_radio_steering(1);
 radio_steering = radio_steering(idx);
 
+% Steering -> roll reference [-3, 3] deg, deadzone +/-10
+roll_reference_deg = sign(radio_steering) .* ...
+    max(abs(radio_steering) - 10, 0) .* (3 / 990);
+
 axvel(end+1) = subplot(2,3,6);
-plot(t_radio_steering, radio_steering);
+plot(t_radio_steering, roll_reference_deg); grid on;
+ylabel('Roll reference [\circ]');
 
 linkaxes(axvel, 'x');
 xlim(xlims);
+%% LOG  LQ divvone 28
+% xlims = [335 360]; % 25
+% xlims = [363 385]; % 22
+return
+plot_velocity_heave_pitch_roll(t_python, v_python, z_python, rad2deg(theta_python), rad2deg(phi_python), xlims=[336 361], name="log0_lot336_stan", roll_deg=roll_reference_deg, roll_time=t_radio_steering)
+plot_velocity_heave_pitch_roll(t_python, v_python, z_python, rad2deg(theta_python), rad2deg(phi_python), xlims=[363 385], name="log0_lot363_stan", roll_deg=roll_reference_deg, roll_time=t_radio_steering)
 
-%%
+%% LOG LQ divvone 18
 return
 plot_velocity_heave_pitch_roll(t_python, v_python, z_python, rad2deg(theta_python), rad2deg(phi_python), xlims=[485 505], name="log0_lot_stan_gorszy")
 plot_velocity_heave_pitch_roll(t_python, v_python, z_python, rad2deg(theta_python), rad2deg(phi_python), xlims=[515 535], name="log0_lot_stan_lepszy")
 
 %%
-plot_velocity_heave_pitch_roll(t_python, v_python, z_python, rad2deg(theta_python), rad2deg(phi_python), xlims=xlims)
+
+% plot_velocity_heave_pitch_roll(t_python, v_python, z_python, rad2deg(theta_python), rad2deg(phi_python), xlims=xlims)
 
 function plot_velocity_heave_pitch_roll(time_s, velocity_mps, heave_m, pitch_deg, roll_deg, opts)
 
@@ -319,10 +333,12 @@ function plot_velocity_heave_pitch_roll(time_s, velocity_mps, heave_m, pitch_deg
         roll_deg
         opts.name = []
         opts.xlims = []
+        opts.roll_deg = []
+        opts.roll_time = []
     end
 
-    Von = 2.4;
-    Voff = 1.9;
+    Von = 2.1;
+    Voff = 1.7;
     active = false(size(velocity_mps));
     enabled = false;
     for i = 1:numel(velocity_mps)
@@ -369,7 +385,11 @@ function plot_velocity_heave_pitch_roll(time_s, velocity_mps, heave_m, pitch_deg
     ax(4) = nexttile;
     plot(time_s, roll_deg, 'LineWidth', 0.5);
     hold on;
-    plot(time_s, zeros(size(time_s)), 'k--', 'LineWidth', 0.5);
+    if ~isempty(opts.roll_deg) && ~isempty(opts.roll_time)
+        plot(opts.roll_time, opts.roll_deg, 'k--', 'LineWidth', 0.5);
+    else
+        plot(time_s, zeros(size(time_s)), 'k--', 'LineWidth', 0.5);
+    end
     ylabel('Roll [\circ]', 'FontName', 'Times New Roman', 'FontSize', 9);
     xlabel('Time [s]', 'FontName', 'Times New Roman', 'FontSize', 9);
     ylim([-10 10]);
@@ -406,11 +426,17 @@ end
 
 
 %% 
+% plot_estimated_feedback_current( ...
+%         t_python, delta_R_python, ...
+%         t_R_hw, delta_R_hw, ...
+%         t_R__current_hw, current_R, ...
+%         xlims=[485 535], name="log0_lot_tylne_skrzydlo")
+
 plot_estimated_feedback_current( ...
         t_python, delta_R_python, ...
         t_R_hw, delta_R_hw, ...
         t_R__current_hw, current_R, ...
-        xlims=[485 535], name="log0_lot_tylne_skrzydlo")
+        xlims=[336 385], name="log0_lot336_poprawione_skrzydlo")
 
 function plot_estimated_feedback_current( ...
         estimate_time_s, estimate_delta_deg, ...
