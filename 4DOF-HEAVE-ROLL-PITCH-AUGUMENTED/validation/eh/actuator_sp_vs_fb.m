@@ -9,9 +9,8 @@ xlims = [336 385]; % OBA
 % parquetFile = "D:\Dane\workspace\logs-mini-celka\logs_storage\2026_10_28_divonnes\logs_parquet\log3.parquet" % MPCi / LQ
 
 % 520 i 490 z log0 to dobre porownanie xd 
-
-% parquetFile = "D:\Dane\workspace\logs-mini-celka\logs_storage\2026_10_18_divonnes\logs_parquet\log0.parquet"
-% xlims = [485 535]; % oba
+parquetFile = "D:\Dane\workspace\logs-mini-celka\logs_storage\2026_10_18_divonnes\logs_parquet\log0.parquet"
+xlims = [485 535]; % oba
 % xlims = [485 505]; % gorszy
 % xlims = [515 535]; % lepszy
 
@@ -505,5 +504,314 @@ function plot_estimated_feedback_current( ...
         exportgraphics(f2, "validation/eh/" + string(opts.name) + "_current.pdf", ...
             'ContentType','vector','BackgroundColor','none', ...
             'Units','centimeters','Width',8,'Height',4.5);
+    end
+end
+
+%% Plot the position of the boat
+t_pos = P.can_msg_timestamp_s;
+lat = P.("can_signals_GPS_POSITION_Latitude");
+lon = P.("can_signals_GPS_POSITION_Longitude");
+idx = ~isnan(lat) & ~isnan(lon) & ~isnan(t_pos);
+
+t_pos = t_pos(idx) - t_pos(1);
+lat = lat(idx);
+lon = lon(idx);
+
+
+%% LOG  LQ divvone 28
+plot_position_speed3(t_pos, lat, lon, t_python, v_python, ...
+    xlims=[336 360], map=true, mapAlpha=0.5, gridStep=10, name="log0_lot336_mapa");
+plot_position_speed3(t_pos, lat, lon, t_python, v_python, ...
+    xlims=[363 385], map=true, mapAlpha=0.5, gridStep=10, name="log0_lot363_mapa");
+%% LOG LQ divvone 18
+plot_position_speed3(t_pos, lat, lon, t_python, v_python, ...
+    xlims=[485 505], map=true, mapAlpha=0.5, gridStep=10, name="log0_lot_mapa_gorszy");
+plot_position_speed3(t_pos, lat, lon, t_python, v_python, ...
+    xlims=[515 535], map=true, mapAlpha=0.5, gridStep=10, name="log0_lot_mapa_lepszy");
+
+%%
+
+function plot_position_speed3(t_pos, lat, lon, t_velocity, velocity_mps, opts)
+    arguments
+        t_pos
+        lat
+        lon
+        t_velocity = []
+        velocity_mps = []
+
+        opts.name = []
+        opts.xlims = []
+        opts.map = false
+        opts.mapAlpha = 0.5
+        opts.gridStep (1,1) double {mustBePositive} = 10
+        opts.colorbarWidth (1,1) double {mustBePositive} = 0.2
+    end
+
+    % Filter by time
+    idx = isfinite(t_pos) & isfinite(lat) & isfinite(lon);
+    if ~isempty(opts.xlims)
+        idx = idx & t_pos >= opts.xlims(1) & t_pos <= opts.xlims(2);
+    end
+
+    t_pos = t_pos(idx);
+    lat = lat(idx);
+    lon = lon(idx);
+
+    t_pos = t_pos(:);
+    lat = lat(:);
+    lon = lon(:);
+
+    if isempty(lat)
+        warning('No GPS samples in selected time range.');
+        return;
+    end
+
+    % Interpolate velocity to GPS timestamps
+    has_speed = ~isempty(t_velocity) && ~isempty(velocity_mps);
+
+    if has_speed
+        idx = isfinite(t_velocity) & isfinite(velocity_mps);
+        t_velocity = t_velocity(idx);
+        velocity_mps = velocity_mps(idx);
+
+        [t_velocity, order] = sort(t_velocity(:));
+        velocity_mps = velocity_mps(order);
+        [t_velocity, ia] = unique(t_velocity);
+        velocity_mps = velocity_mps(ia);
+
+        speed = interp1(t_velocity, velocity_mps, t_pos, 'linear', NaN);
+        has_speed = any(isfinite(speed));
+    end
+
+    % Create figure (8 x 8 cm)
+    fig = figure('Color', 'w', 'Name', '', ...
+        'Units', 'centimeters', 'Position', [2 2 8 8]);
+
+    if opts.map
+        ax = geoaxes(fig);
+        geobasemap(ax, 'satellite');
+        hold(ax, 'on');
+
+        % Geographic limits with margin
+        dlat = max(max(lat) - min(lat), 1e-4);
+        dlon = max(max(lon) - min(lon), 1e-4);
+
+        latCenter = (min(lat) + max(lat)) / 2;
+        lonCenter = (min(lon) + max(lon)) / 2;
+
+        latView = latCenter + [-0.65 0.65] * dlat;
+        lonView = lonCenter + [-0.65 0.65] * dlon;
+
+        % White translucent overlay over satellite map
+        latOverlay = latCenter + [-5 5] * dlat;
+        lonOverlay = lonCenter + [-5 5] * dlon;
+
+        poly = geopolyshape( ...
+            latOverlay([1 2 2 1 1]), ...
+            lonOverlay([1 1 2 2 1]));
+
+        geoplot(ax, poly, ...
+            'FaceColor', 'white', ...
+            'FaceAlpha', opts.mapAlpha, ...
+            'EdgeColor', 'none', ...
+            'HandleVisibility', 'off');
+
+        h = geoplot(ax, lat, lon, ...
+            'Color', [0.5 0.5 0.5], 'LineWidth', 0.8);
+
+    else
+        % Convert GPS coordinates to local East-North [m]
+        R = 6371000;
+        lat0 = lat(1);
+        lon0 = lon(1);
+
+        east_m  = R * cosd(lat0) .* deg2rad(lon - lon0);
+        north_m = R * deg2rad(lat - lat0);
+
+        ax = axes(fig);
+        h = plot(ax, east_m, north_m, ...
+            'Color', [0.5 0.5 0.5], 'LineWidth', 0.8);
+        hold(ax, 'on');
+
+        xlabel('East [m]', 'FontName', 'Times New Roman', 'FontSize', 9);
+        ylabel('North [m]', 'FontName', 'Times New Roman', 'FontSize', 9);
+
+        grid on;
+        axis equal;
+    end
+
+    % Color trajectory by velocity
+    if has_speed
+        nColors = 64;
+        colors = turbo(nColors);
+
+        vmin = min(speed, [], 'omitnan');
+        vmax = max(speed, [], 'omitnan');
+
+        if vmax == vmin
+            color_idx = repmat(ceil(nColors/2), numel(speed)-1, 1);
+            clim(ax, [vmin-0.5 vmax+0.5]);
+        else
+            segment_speed = (speed(1:end-1) + speed(2:end)) / 2;
+            color_idx = 1 + floor( ...
+                (segment_speed - vmin) / (vmax - vmin) * (nColors-1));
+            clim(ax, [vmin vmax]);
+        end
+
+        colormap(ax, colors);
+
+        % Draw segments grouped by color
+        for k = 1:nColors
+            ii = find(color_idx == k & ...
+                isfinite(speed(1:end-1)) & isfinite(speed(2:end)));
+
+            if isempty(ii)
+                continue;
+            end
+
+            if opts.map
+                yy = [lat(ii), lat(ii+1), nan(size(ii))]';
+                xx = [lon(ii), lon(ii+1), nan(size(ii))]';
+
+                geoplot(ax, yy(:), xx(:), ...
+                    'Color', colors(k,:), 'LineWidth', 1.5, ...
+                    'HandleVisibility', 'off');
+            else
+                xx = [east_m(ii), east_m(ii+1), nan(size(ii))]';
+                yy = [north_m(ii), north_m(ii+1), nan(size(ii))]';
+
+                plot(ax, xx(:), yy(:), ...
+                    'Color', colors(k,:), 'LineWidth', 1.5, ...
+                    'HandleVisibility', 'off');
+            end
+        end
+
+        cb = colorbar(ax);
+        cb.Label.String = 'Velocity [m/s]';
+        cb.FontName = 'Times New Roman';
+        cb.FontSize = 9;
+        cb.Label.FontName = 'Times New Roman';
+        cb.Label.FontSize = 9;
+    end
+
+    % Start and end markers
+    if opts.map
+        hStart = geoplot(ax, lat(1), lon(1), ...
+            'go', 'MarkerFaceColor', 'g');
+        hEnd = geoplot(ax, lat(end), lon(end), ...
+            'ro', 'MarkerFaceColor', 'r');
+
+        geolimits(ax, latView, lonView);
+    else
+        hStart = plot(ax, east_m(1), north_m(1), ...
+            'go', 'MarkerFaceColor', 'g');
+        hEnd = plot(ax, east_m(end), north_m(end), ...
+            'ro', 'MarkerFaceColor', 'r');
+    end
+
+    % Legend and font
+    % lgd = legend(ax, [h hStart hEnd], ...
+    %     'Trajectory', 'Start', 'End', 'Location', 'best');
+    lgd = legend(ax, [hStart hEnd], ...
+        'Start', 'End', 'Location', 'best');
+    lgd.FontName = 'Times New Roman';
+    lgd.FontSize = 9;
+
+    set(ax, 'FontName', 'Times New Roman', 'FontSize', 9);
+
+    % Geographic axes with metric tick labels
+    if opts.map
+        % Resolve actual limits after MATLAB adjusts map aspect ratio
+        drawnow;
+        [latLimits, lonLimits] = geolimits(ax);
+
+        % Local East-North approximation
+        R = 6371000;
+        lat0 = latLimits(1);
+        lon0 = lonLimits(1);
+
+        metersPerDegLat = R * pi / 180;
+        metersPerDegLon = metersPerDegLat * cosd(lat0);
+
+        % Visible map dimensions in meters
+        width_m = diff(lonLimits) * metersPerDegLon;
+        height_m = diff(latLimits) * metersPerDegLat;
+
+        % Metric ticks measured from bottom-left corner
+        eastTicks = 0:opts.gridStep:width_m;
+        northTicks = 0:opts.gridStep:height_m;
+
+        % Convert metric positions back to geographic coordinates
+        lonTicks = lon0 + eastTicks / metersPerDegLon;
+        latTicks = lat0 + northTicks / metersPerDegLat;
+
+        % Replace geographic tick labels with meters
+        ax.LongitudeAxis.TickValues = lonTicks;
+        ax.LongitudeAxis.TickLabels = compose('%g', eastTicks);
+
+        ax.LatitudeAxis.TickValues = latTicks;
+        ax.LatitudeAxis.TickLabels = compose('%g', northTicks);
+
+        % Rename axes
+        ax.LongitudeLabel.String = 'East [m]';
+        ax.LatitudeLabel.String = 'North [m]';
+
+        % Grid appearance
+        grid(ax, 'on');
+        ax.GridColor = [0.3 0.3 0.3];
+        ax.GridAlpha = 0.2;
+    end
+% Adjust colorbar and map width
+if has_speed
+    drawnow;
+
+    ax.Units = 'centimeters';
+    cb.Units = 'centimeters';
+
+    % Current axes position
+    axPos = ax.Position;
+
+    % Adjust colorbar width
+    pos = cb.Position;
+    cb_offset = 0.4;
+    pos(1) = pos(1) + pos(3) - opts.colorbarWidth + cb_offset;
+    pos(3) = opts.colorbarWidth;
+    cb.Position = pos;
+
+    % Ensure x mm gap between map and colorbar
+    axPos(3) = pos(1) - axPos(1);
+    ax.Position = axPos;
+end
+% Recalculate metric ticks after final layout adjustment
+if opts.map
+    drawnow;
+    [latLimits, lonLimits] = geolimits(ax);
+
+    R = 6371000;
+    metersPerDegLat = R * pi / 180;
+    metersPerDegLon = metersPerDegLat * cosd(latLimits(1));
+
+    width_m = diff(lonLimits) * metersPerDegLon;
+    height_m = diff(latLimits) * metersPerDegLat;
+
+    eastTicks = 0:opts.gridStep:width_m;
+    northTicks = 0:opts.gridStep:height_m;
+
+    ax.LongitudeAxis.TickValues = ...
+        lonLimits(1) + eastTicks / metersPerDegLon;
+    ax.LongitudeAxis.TickLabels = compose('%g', eastTicks);
+
+    ax.LatitudeAxis.TickValues = ...
+        latLimits(1) + northTicks / metersPerDegLat;
+    ax.LatitudeAxis.TickLabels = compose('%g', northTicks);
+end
+    % Optional save
+    if ~isempty(opts.name) && strlength(string(opts.name)) > 0
+        exportgraphics(fig, ...
+            "validation/eh/" + string(opts.name) + ".pdf", ...
+            'ContentType', 'vector', ...
+            'BackgroundColor', 'none', ...
+            'Units', 'centimeters', ...
+            'Width', 8, 'Height', 8);
     end
 end
