@@ -5,19 +5,21 @@ parquetFile = "D:\Dane\workspace\logs-mini-celka\logs_storage\2026_10_28_divonne
 % xlims = [363 385]; % 22
 xlims = [336 385]; % OBA
 
-% parquetFile = "D:\Dane\workspace\logs-mini-celka\logs_storage\2026_10_28_divonnes\logs_parquet\log1.parquet" % MPC / LQ
+parquetFile = "D:\Dane\workspace\logs-mini-celka\logs_storage\2026_10_28_divonnes\logs_parquet\log1.parquet" % MPC / LQ
+xlims = [327 350]; % MPC
+
 % parquetFile = "D:\Dane\workspace\logs-mini-celka\logs_storage\2026_10_28_divonnes\logs_parquet\log3.parquet" % MPCi / LQ
 
 % 520 i 490 z log0 to dobre porownanie xd 
-parquetFile = "D:\Dane\workspace\logs-mini-celka\logs_storage\2026_10_18_divonnes\logs_parquet\log0.parquet"
-xlims = [485 535]; % oba
+% parquetFile = "D:\Dane\workspace\logs-mini-celka\logs_storage\2026_10_18_divonnes\logs_parquet\log0.parquet"
+% xlims = [485 535]; % oba
 % xlims = [485 505]; % gorszy
 % xlims = [515 535]; % lepszy
 
 P = parquetread(parquetFile);
 disp("Parquet columns:");
 disp(P.Properties.VariableNames.');
-% % xlims = [P.timestamp_s(1) P.timestamp_s(end)] - P.timestamp_s(1);
+xlims = [P.timestamp_s(1) P.timestamp_s(end)] - P.timestamp_s(1);
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Python observer from Parquet
@@ -307,6 +309,10 @@ ylabel('Roll reference [\circ]');
 linkaxes(axvel, 'x');
 xlim(xlims);
 %% LOG  LQ divvone 28
+return
+plot_velocity_heave_pitch_roll(t_python, v_python, z_python, rad2deg(theta_python), rad2deg(phi_python), xlims=[327 350], name="log1_lot328_stan", roll_deg=roll_reference_deg, roll_time=t_radio_steering)
+
+%% LOG  LQ divvone 28
 % xlims = [335 360]; % 25
 % xlims = [363 385]; % 22
 return
@@ -516,7 +522,11 @@ idx = ~isnan(lat) & ~isnan(lon) & ~isnan(t_pos);
 t_pos = t_pos(idx) - t_pos(1);
 lat = lat(idx);
 lon = lon(idx);
+return
 
+%% LOG MPC divonne 28
+plot_position_speed3(t_pos, lat, lon, t_python, v_python, ...
+    xlims=[327 350], map=true, mapAlpha=0.5, gridStep=10, name="log1_lot328_mapa");
 
 %% LOG  LQ divvone 28
 plot_position_speed3(t_pos, lat, lon, t_python, v_python, ...
@@ -585,7 +595,7 @@ function plot_position_speed3(t_pos, lat, lon, t_velocity, velocity_mps, opts)
 
     % Create figure (8 x 8 cm)
     fig = figure('Color', 'w', 'Name', '', ...
-        'Units', 'centimeters', 'Position', [2 2 8 8]);
+        'Units', 'centimeters', 'Position', [2 2 8 7]);
 
     if opts.map
         ax = geoaxes(fig);
@@ -812,6 +822,6 @@ end
             'ContentType', 'vector', ...
             'BackgroundColor', 'none', ...
             'Units', 'centimeters', ...
-            'Width', 8, 'Height', 8);
+            'Width', 8, 'Height', 7);
     end
 end

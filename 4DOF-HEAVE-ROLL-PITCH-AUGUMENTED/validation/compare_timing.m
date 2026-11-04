@@ -1,10 +1,15 @@
 clear
 %% Load Python runtime log 2026_10_17_home 
-parquetFile = "D:\Dane\workspace\logs-mini-celka\logs_storage\2026_09_25_divonnes\logs_parquet\log2.parquet"
+parquetFile = "D:\Dane\workspace\logs-mini-celka\logs_storage\2026_10_28_divonnes\logs_parquet\log1.parquet"; % MPC / LQ
+xlims = [327 350]; % MPC
+% xlims = [110 187]; % ale byl wlaczony tylko tutaj
+
+% parquetFile = "D:\Dane\workspace\logs-mini-celka\logs_storage\2026_09_25_divonnes\logs_parquet\log2.parquet"
 P = parquetread(parquetFile);
 disp("Parquet columns:");
 disp(P.Properties.VariableNames.');
 
+%% Extract control loop timing data
 %% Extract control loop timing data
 t_ns    = P.("control_cycle_timestamp_monotonic_ns");
 exec_ns = P.("control_cycle_execution_ns");
@@ -12,12 +17,18 @@ late_ns = P.("control_cycle_lateness_ns");
 
 idx = ~isnan(t_ns) & ~isnan(exec_ns) & ~isnan(late_ns);
 
+% Time relative to beginning of entire log
+t_all = (double(t_ns) - double(t_ns(find(idx, 1, 'first')))) / 1e9;
+
+% Apply time window
+idx = idx & t_all >= xlims(1) & t_all <= xlims(2);
+
 t_ns    = double(t_ns(idx));
 exec_ms = double(exec_ns(idx)) / 1e6;
 late_ms = double(late_ns(idx)) / 1e6;
 
 % Actual sampling interval
-t = (t_ns - t_ns(1)) / 1e9;
+t = t_all(idx);
 dt_ms = diff(t_ns) / 1e6;
 t_dt = t(2:end);
 
@@ -44,23 +55,23 @@ fprintf('Estimated missed periods: %d\n', ...
 
 %% PIL real-time execution performance
 
-% Control loop timing data
-t_ns = P.("control_cycle_timestamp_monotonic_ns");
-exec_ns = P.("control_cycle_execution_ns");
-late_ns = P.("control_cycle_lateness_ns");
-
-idx = ~isnan(t_ns) & ~isnan(exec_ns) & ~isnan(late_ns);
-
-t_ns = double(t_ns(idx));
-exec_ms = double(exec_ns(idx)) / 1e6;
-late_ms = double(late_ns(idx)) / 1e6;
-
-% Actual sampling interval
-t = (t_ns - t_ns(1)) / 1e9;
-dt_ms = diff(t_ns) / 1e6;
-t_dt = t(2:end);
-
-Ts_ms = 10;
+% % Control loop timing data
+% t_ns = P.("control_cycle_timestamp_monotonic_ns");
+% exec_ns = P.("control_cycle_execution_ns");
+% late_ns = P.("control_cycle_lateness_ns");
+% 
+% idx = ~isnan(t_ns) & ~isnan(exec_ns) & ~isnan(late_ns);
+% 
+% t_ns = double(t_ns(idx));
+% exec_ms = double(exec_ns(idx)) / 1e6;
+% late_ms = double(late_ns(idx)) / 1e6;
+% 
+% % Actual sampling interval
+% t = (t_ns - t_ns(1)) / 1e9;
+% dt_ms = diff(t_ns) / 1e6;
+% t_dt = t(2:end);
+% 
+% Ts_ms = 10;
 
 % Statistics
 fprintf('\n--- Control loop timing statistics ---\n');
@@ -89,7 +100,8 @@ xlabel('Time [s]', ...
 ylabel('Sampling interval [ms]', ...
     'FontName','Times New Roman','FontSize',9);
 set(gca,'FontName','Times New Roman','FontSize',9);
-xlim([0 t_dt(end)]);
+% xlim([0 t_dt(end)]);
+xlim(xlims);
 
 % Figure 2 - Sampling interval histogram
 fff2 = figure('Name','timing_hist', ...
@@ -108,12 +120,12 @@ set(gca,'FontName','Times New Roman','FontSize',9);
 xlim([9.978 10.022])
 
 % Export
-exportgraphics(fff1, 'validation/PIL_timing.pdf', ...
-    'ContentType','vector', 'BackgroundColor','none', ...
-    'Units','centimeters', 'Width',8, 'Height',4.5);
-exportgraphics(fff2, 'validation/PIL_timing_hist.pdf', ...
-    'ContentType','vector', 'BackgroundColor','none', ...
-    'Units','centimeters', 'Width',8, 'Height',4.5);
+% exportgraphics(fff1, 'validation/PIL_timing.pdf', ...
+%     'ContentType','vector', 'BackgroundColor','none', ...
+%     'Units','centimeters', 'Width',8, 'Height',4.5);
+% exportgraphics(fff2, 'validation/PIL_timing_hist.pdf', ...
+%     'ContentType','vector', 'BackgroundColor','none', ...
+%     'Units','centimeters', 'Width',8, 'Height',4.5);
 
 %% Control loop completion timing
 
@@ -137,13 +149,21 @@ fprintf('Std interval:         %.4f ms\n', std(finish_dt_ms));
 fprintf('Max completion interval: %.4f ms\n', max(finish_dt_ms));
 fprintf('99th completion interval: %.4f ms\n', prctile(finish_dt_ms,99));
 
-% Histogram
-figure;
-histogram(finish_ms, 'BinWidth', 0.1);
+%% Histogram
+x = figure('Name','MPC_completion_hist', ...
+    'Units','centimeters','Position',[2 2 8 6]);
+% figure;
+histogram(finish_ms, 'BinWidth', 0.2);
+xlim([0 10])
 grid on;
-xline(Ts_ms, '--', '10 ms deadline');
-xlabel('Completion time relative to scheduled tick [ms]');
-ylabel('Count');
+% xline(Ts_ms, '--', '10 ms deadline');
+% xlabel('MPC completion time relative to scheduled tick [ms]','FontName','Times New Roman','FontSize',9);
+xlabel('Completion time [ms]', 'FontName','Times New Roman', 'FontSize',9);
+ylabel('Count [-]','FontName','Times New Roman','FontSize',9);
+set(gca,'FontName','Times New Roman','FontSize',9);
+exportgraphics(x, 'validation/eh/MPC_completion_hist.pdf', ...
+    'ContentType','vector', 'BackgroundColor','none', ...
+    'Units','centimeters', 'Width',8, 'Height',6);
 
 %% Normality test - Jarque-Bera
 [h, p] = jbtest(dt_ms, 0.05);
