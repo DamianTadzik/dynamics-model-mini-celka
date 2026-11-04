@@ -151,7 +151,7 @@ fprintf('99th completion interval: %.4f ms\n', prctile(finish_dt_ms,99));
 
 %% Histogram
 x = figure('Name','MPC_completion_hist', ...
-    'Units','centimeters','Position',[2 2 8 6]);
+    'Units','centimeters','Position',[2 2 8 7]);
 % figure;
 histogram(finish_ms, 'BinWidth', 0.2);
 xlim([0 10])
@@ -161,9 +161,18 @@ grid on;
 xlabel('Completion time [ms]', 'FontName','Times New Roman', 'FontSize',9);
 ylabel('Count [-]','FontName','Times New Roman','FontSize',9);
 set(gca,'FontName','Times New Roman','FontSize',9);
-exportgraphics(x, 'validation/eh/MPC_completion_hist.pdf', ...
+
+% Adjust axes width
+ax = gca;
+ax.Units = 'centimeters';
+pos = ax.Position;
+pos(3) = pos(3) - 0.6;  % Reduce width
+ax.Position = pos;
+
+exportgraphics(ax, 'validation/eh/MPC_completion_hist.pdf', ...
     'ContentType','vector', 'BackgroundColor','none', ...
-    'Units','centimeters', 'Width',8, 'Height',6);
+    'Units','centimeters', 'Width',8, 'Height',7, ...
+    'Padding', 'figure');
 
 %% Normality test - Jarque-Bera
 [h, p] = jbtest(dt_ms, 0.05);
